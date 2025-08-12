@@ -27,6 +27,6 @@ class MetricsMiddleware(BaseHTTPMiddleware):
 
             store = get_metrics_store()
 
-            await store.record_request_log(path, duration, status_code, method)
+            await store.record_request_metrics(path, duration, status_code, method)
 
         return response
