@@ -18,23 +18,6 @@ def index():
     return "ok"
 
 
-@app.put("/ping")
-def ping():
-    time.sleep(1)
-    return "pong"
-
-
-@app.patch("/patch")
-def patch():
-    return "ua"
-
-
-@app.get("/fail")
-def fail():
-    return 0 / 0
-
-
-@app.get("/calculation")
 def calculation():
     big_list = []
     start_time = time.time()
@@ -47,8 +30,8 @@ def calculation():
     return {"done": True}
 
 
-@app.get("/sensitive")
 @exclude_from_metrics
+@app.get("/sensitive")
 def sensitive():
     return "sensitive"
 

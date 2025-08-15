@@ -4,7 +4,6 @@ createApp({
     setup() {
         let fetchInterval;
 
-        // TODO: change apexchart date format based on this
         const MS = {
             minute: 60_000,
             hour: 3_600_000,
@@ -156,7 +155,7 @@ createApp({
                 enabled: false,
             },
             stroke: {
-                width: [2, 2],
+                width: 2,
                 curve: "smooth",
             },
             grid: {
@@ -232,7 +231,7 @@ createApp({
                 enabled: false,
             },
             stroke: {
-                width: [2, 2],
+                width: 2,
                 curve: "smooth",
             },
             grid: {
@@ -304,7 +303,7 @@ createApp({
                 enabled: false,
             },
             stroke: {
-                width: [2, 2],
+                width: 2,
                 curve: "smooth",
             },
             grid: {
@@ -380,7 +379,7 @@ createApp({
                 enabled: false,
             },
             stroke: {
-                width: [2, 2],
+                width: 2,
                 curve: "smooth",
             },
             grid: {
@@ -532,7 +531,7 @@ createApp({
                 enabled: false,
             },
             stroke: {
-                width: [2, 2],
+                width: 2,
                 curve: "smooth",
             },
             grid: {
@@ -613,7 +612,7 @@ createApp({
                 enabled: false,
             },
             stroke: {
-                width: [2, 2],
+                width: 2,
                 curve: "smooth",
             },
             grid: {
@@ -625,7 +624,6 @@ createApp({
                     },
                 },
             },
-            // colors: ["#10B981"],
             xaxis: {
                 type: "datetime",
                 axisBorder: {
