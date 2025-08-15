@@ -1,37 +1,64 @@
-const { createApp, onMounted, onUnmounted, ref } = Vue;
+const { createApp, onMounted, onUnmounted, computed, ref } = Vue;
 
 createApp({
     setup() {
         let fetchInterval;
 
         // TODO: change apexchart date format based on this
-        // in milliseconds
         const MS = {
-            minute: 60 * 1000,
-            hour: 60 * 60 * 1000,
-            day: 24 * 60 * 60 * 1000,
-        };
-        const now = () => { return new Date().getTime() }
-        const date_ranges = {
-            _30min: 30 * MS.minute,
-            _60min: 60 * MS.minute,
-            _3h: 3 * MS.hour,
-            _6h: 6 * MS.hour,
-            _12h: 12 * MS.hour,
-            _24h: 24 * MS.hour,
-            _3days: 3 * MS.day,
-            _7days: 7 * MS.day,
-        };
+            minute: 60_000,
+            hour: 3_600_000,
+            day: 86_400_000,
+        }
+        const dateRanges = {
+            "30 min": 30 * MS.minute,
+            "60 min": 60 * MS.minute,
+            "3 hours": 3 * MS.hour,
+            "6 hours": 6 * MS.hour,
+            "12 hours": 12 * MS.hour,
+            "24 hours": 24 * MS.hour,
+            "3 days": 3 * MS.day,
+            "7 days": 7 * MS.day,
+        }
+        const timeRangeDropdown = ref(false)
+        const timeRangeKey = ref("30 min")
 
-        const buckets = {
+        const filterTimeRange = computed(() => dateRanges[timeRangeKey.value]);
 
+        function changeTimeRange(rangeKey) {
+            destroyCharts()
+            renderCharts()
+            getData()
+            timeRangeKey.value = rangeKey
+            timeRangeDropdown.value = !timeRangeDropdown.value
         }
 
+        function timeLabelformatter(value) {
+            const rangeMs = dateRanges[timeRangeKey.value];
+            const date = new Date(value);
+
+            if (rangeMs < MS.day) {
+                return date.toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                });
+            } else {
+                return date.toLocaleDateString([], {
+                    year: "numeric",
+                    month: "short",
+                    day: "numeric",
+                });
+            }
+        }
+
+        const settingsDropdown = ref(false)
         const errorRefreshing = ref(false)
 
-        const filter_date_min = date_ranges._30min
+        // TODO: put in localstorage (time range ..etc)
+        const preferences = ref({
+        })
 
-        const http_status_code_colors = {
+        const httpStatusColorCode = {
             "1XX": "#64748b",
             "2XX": "#10B981",
             "3XX": "#eab308",
@@ -48,7 +75,31 @@ createApp({
             OPTION: 0,
         }
 
-        const tableRows = ref(null)
+        const overviewTable = ref({ rows: {} })
+        const tablePage = ref(1)
+        const tableLimit = ref(6)
+        const tableEntries = computed(() => Object.entries(overviewTable.value.rows))
+        const totalPages = computed(() => Math.ceil(tableEntries.value.length / tableLimit.value))
+
+        const paginatedEntries = computed(() => {
+            const start = (tablePage.value - 1) * tableLimit.value
+            const end = start + tableLimit.value
+            return Object.fromEntries(tableEntries.value.slice(start, end))
+        })
+
+        function nextPage() {
+            console.log("next page")
+            if (tablePage.value < totalPages.value) {
+                tablePage.value++
+            }
+        }
+
+        function prevPage() {
+            console.log("prev page")
+            if (tablePage.value > 1) {
+                tablePage.value--
+            }
+        }
 
         const current_cpu_usage = ref(0)
         const current_memory_usage = ref(0)
@@ -126,23 +177,13 @@ createApp({
                     show: false,
                 },
                 labels: {
-                    formatter: function (value) {
-                        return new Date(value).toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                        });
-                    }
+                    formatter: (value) => timeLabelformatter(value)
                 },
-                min: now() - filter_date_min,
+                min: Date.now() - filterTimeRange.value,
             },
             yaxis: {
                 min: 0,
                 max: 100,
-                labels: {
-                    formatter: function (val) {
-                        return Math.round(val)
-                    }
-                }
             },
             series: [],
         });
@@ -212,23 +253,13 @@ createApp({
                     show: false,
                 },
                 labels: {
-                    formatter: (value) => {
-                        return new Date(value).toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                        });
-                    },
+                    formatter: (value) => timeLabelformatter(value)
                 },
-                min: now() - filter_date_min,
+                min: Date.now() - filterTimeRange.value,
             },
             yaxis: {
                 min: 0,
                 max: 100,
-                labels: {
-                    formatter: function (val) {
-                        return Math.round(val)
-                    }
-                }
             },
             series: [],
         });
@@ -295,14 +326,9 @@ createApp({
                     show: false,
                 },
                 labels: {
-                    formatter: (value) => {
-                        return new Date(value).toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                        });
-                    },
+                    formatter: (value) => timeLabelformatter(value)
                 },
-                min: now() - filter_date_min,
+                min: Date.now() - filterTimeRange.value,
             },
             yaxis: {
                 labels: {
@@ -376,14 +402,9 @@ createApp({
                     show: false,
                 },
                 labels: {
-                    formatter: (value) => {
-                        return new Date(value).toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                        });
-                    },
+                    formatter: (value) => timeLabelformatter(value)
                 },
-                min: now() - filter_date_min,
+                min: Date.now() - filterTimeRange.value,
             },
             yaxis: {
                 labels: {
@@ -394,94 +415,6 @@ createApp({
             },
             series: [],
         });
-
-        // let current_time = now()
-        // const example_options = ref({
-        //     chart: {
-        //         type: 'bar',
-        //         height: "85%",
-        //         width: "98%",
-        //         toolbar: {
-        //             show: false,
-        //         },
-        //         zoom: {
-        //             enabled: false,
-        //             allowMouseWheelZoom: false,
-        //         },
-        //         stacked: true,
-        //         animations: {
-        //             enabled: false
-        //         },
-        //     },
-        //     tooltip: {
-        //         theme: 'dark',
-        //         style: {
-        //             fontSize: '10px',
-        //         }
-        //     },
-        //     dataLabels: {
-        //         enabled: false,
-        //     },
-        //     grid: {
-        //         borderColor: "#252525",
-        //         strokeDashArray: 2,
-        //         xaxis: {
-        //             lines: {
-        //                 show: true,
-        //             },
-        //         },
-        //     },
-        //     responsive: [{
-        //         breakpoint: 480,
-        //     }],
-        //     plotOptions: {
-        //         bar: {
-        //             horizontal: false,
-        //             borderRadius: 2,
-        //             borderRadiusApplication: 'end', // 'around', 'end'
-        //             borderRadiusWhenStacked: 'last', // 'all', 'last'
-        //             dataLabels: {
-        //                 total: {
-        //                     enabled: false,
-        //                 }
-        //             }
-        //         },
-        //     },
-        //     xaxis: {
-        //         type: 'datetime',
-        //         axisBorder: {
-        //             show: false,
-        //         },
-        //         axisTicks: {
-        //             show: false,
-        //         },
-        //         labels: {
-        //             formatter: (value) => {
-        //                 return new Date(value).toLocaleTimeString([], {
-        //                     hour: "2-digit",
-        //                     minute: "2-digit",
-        //                 });
-        //             },
-        //         },
-        //         min: now() - filter_date_min,
-        //         max: now(),
-        //         range: undefined,
-        //     },
-        //     legend: {
-        //         show: false,
-        //     },
-        //     fill: {
-        //         opacity: 1
-        //     },
-        //     series: [{
-        //         // (filter_date_min / 1000) / 10
-        //         data: Array.from({ length: 180 }, (_, i) => {
-        //             if (current_time < (now() - filter_date_min)) return
-        //             if (i == 0) return [current_time - (i * 10000), 100]
-        //             return [current_time - (i * 10000), 10]
-        //         })
-        //     }],
-        // });
 
         // REQUEST METRICS
         const rpm_chart_options = ref({
@@ -535,6 +468,12 @@ createApp({
                     }
                 },
             },
+            legend: {
+                show: false,
+            },
+            fill: {
+                opacity: 1
+            },
             xaxis: {
                 type: 'datetime',
                 axisBorder: {
@@ -544,22 +483,17 @@ createApp({
                     show: false,
                 },
                 labels: {
-                    formatter: (value) => {
-                        return new Date(value).toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                        });
-                    },
+                    formatter: (value) => timeLabelformatter(value)
                 },
-                min: now() - filter_date_min,
-                max: now(),
-                range: undefined,
+                min: Date.now() - filterTimeRange.value,
+                max: Date.now(),
             },
-            legend: {
-                show: false,
-            },
-            fill: {
-                opacity: 1
+            yaxis: {
+                labels: {
+                    formatter: function (val) {
+                        return Math.round(val / (1024 * 1024))
+                    }
+                }
             },
             series: [],
         });
@@ -627,7 +561,8 @@ createApp({
                         });
                     }
                 },
-                min: now() - filter_date_min,
+                min: Date.now() - filterTimeRange.value,
+                max: Date.now(),
             },
             yaxis: {
                 min: 0,
@@ -707,7 +642,8 @@ createApp({
                         });
                     }
                 },
-                min: now() - filter_date_min,
+                min: Date.now() - filterTimeRange.value,
+                max: Date.now(),
             },
             yaxis: {
                 min: 0,
@@ -774,14 +710,10 @@ createApp({
                     show: false,
                 },
                 labels: {
-                    formatter: (value) => {
-                        return new Date(value).toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                        });
-                    },
+                    formatter: (value) => timeLabelformatter(value)
                 },
-                min: now() - filter_date_min,
+                min: Date.now() - filterTimeRange.value,
+                max: Date.now(),
             },
             legend: {
                 show: false,
@@ -802,8 +734,6 @@ createApp({
         const rpm_chart = ref(null)
         const read_write_per_minute_chart = ref(null)
         const latency_per_route_chart = ref(null)
-
-        // const example_chart = ref(null)
 
         // ERROR METRICS
         const error_requests_chart = ref(null)
@@ -829,8 +759,6 @@ createApp({
             latency_per_route_chart.value = new ApexCharts(document.querySelector("#latency_per_route_chart"), latency_per_route_chart_options.value);
             error_requests_chart.value = new ApexCharts(document.querySelector("#error_requests_chart"), error_requests_chart_options.value);
 
-            // example_chart.value = new ApexCharts(document.querySelector("#example_chart"), example_options.value);
-
             cpu_chart.value.render();
             memory_chart.value.render();
             memory_used_and_available_chart.value.render();
@@ -839,11 +767,36 @@ createApp({
             read_write_per_minute_chart.value.render();
             latency_per_route_chart.value.render();
             error_requests_chart.value.render();
-            // example_chart.value.render();
+        }
+
+        function destroyCharts() {
+            cpu_chart.value.destroy();
+            memory_chart.value.destroy();
+            memory_used_and_available_chart.value.destroy();
+            network_io_chart.value.destroy();
+            rpm_chart.value.destroy();
+            read_write_per_minute_chart.value.destroy();
+            latency_per_route_chart.value.destroy();
+            error_requests_chart.value.destroy();
+        }
+
+        async function getTableOverview() {
+            const tsFrom = Math.round((Date.now() - filterTimeRange.value) / 1000)
+            // & search_term=${ null}`
+            const url = `/metrics/table_overview?ts_from=${tsFrom}&page=${1}&limit=${10}`
+            try {
+                const response = await fetch(url)
+                if (!response.ok) {
+                    console.log("error table")
+                }
+                overviewTable.value = await response.json()
+            } catch (error) {
+                console.log("error table")
+            }
         }
 
         async function getData() {
-            const tsFrom = Math.round((now() - filter_date_min) / 1000)
+            const tsFrom = Math.round((Date.now() - filterTimeRange.value) / 1000)
             const url = `/metrics/json?ts_from=${tsFrom}`
             try {
                 const response = await fetch(url)
@@ -851,60 +804,60 @@ createApp({
                     errorRefreshing.value = true
                     console.log("problem getting data")
                 }
-                // timestamp seconds => milli for js 
+                // timestamp seconds => milli for js
                 const formatForChart = (data, key) => { return data.map(point => [point.timestamp * 1000, point[key]]) }
 
-                const json_response = await response.json()
+                const jsonResponse = await response.json()
 
                 cpu_chart.value.updateSeries([
                     {
                         name: "min",
                         color: "#0d9568",
-                        data: formatForChart(json_response.system_metrics.cpu_percent, 'min')
+                        data: formatForChart(jsonResponse.system_metrics.cpu_percent, 'min')
                     },
                     {
                         name: "avg",
                         color: "#10B981",
-                        data: formatForChart(json_response.system_metrics.cpu_percent, 'avg')
+                        data: formatForChart(jsonResponse.system_metrics.cpu_percent, 'avg')
                     },
                     {
                         name: "max",
                         color: "#13dd9a",
-                        data: formatForChart(json_response.system_metrics.cpu_percent, 'max')
+                        data: formatForChart(jsonResponse.system_metrics.cpu_percent, 'max')
                     }
                 ])
                 memory_chart.value.updateSeries([{
                     name: "avg",
                     color: "#10B981",
-                    data: formatForChart(json_response.system_metrics.memory_percent, 'avg')
+                    data: formatForChart(jsonResponse.system_metrics.memory_percent, 'avg')
                 }])
                 memory_used_and_available_chart.value.updateSeries([
                     {
                         name: "Memory used (MiB)",
                         color: "#10B981",
-                        data: formatForChart(json_response.system_metrics.memory_used_mb, 'avg')
+                        data: formatForChart(jsonResponse.system_metrics.memory_used_mb, 'avg')
                     },
                     {
                         name: "Memory available (MiB)",
                         color: "#085b3f",
-                        data: formatForChart(json_response.system_metrics.memory_available_mb, 'avg')
+                        data: formatForChart(jsonResponse.system_metrics.memory_available_mb, 'avg')
                     }
                 ])
                 network_io_chart.value.updateSeries([
                     {
                         name: "Network bytes sent (Mbps)",
                         color: "#10B981",
-                        data: formatForChart(json_response.system_metrics.network_io_sent, 'avg')
+                        data: formatForChart(jsonResponse.system_metrics.network_io_sent, 'avg')
                     },
                     {
                         name: "Network bytes recieved (Mbps)",
                         color: "#085b3f",
-                        data: formatForChart(json_response.system_metrics.network_io_recv, 'avg')
+                        data: formatForChart(jsonResponse.system_metrics.network_io_recv, 'avg')
                     }
                 ])
 
                 read_write_per_minute_chart.value.updateSeries(
-                    json_response.read_write.map(item => {
+                    jsonResponse.read_write.map(item => {
                         return {
                             name: item.name,
                             data: item.data.map(point => [point[0] * 1000, point[1]])
@@ -912,7 +865,7 @@ createApp({
                     })
                 )
                 latency_per_route_chart.value.updateSeries(
-                    json_response.latencies.map(item => {
+                    jsonResponse.latencies.map(item => {
                         return {
                             name: item.name,
                             data: item.data.map(point => [point[0] * 1000, point[1]])
@@ -920,10 +873,10 @@ createApp({
                     })
                 )
                 rpm_chart.value.updateSeries(
-                    json_response.status_code.map(item => {
+                    jsonResponse.status_code.map(item => {
                         return {
                             name: item.name,
-                            color: http_status_code_colors[item.name],
+                            color: httpStatusColorCode[item.name],
                             data: item.data.map(point => [point[0] * 1000, point[1]])
                         }
                     })
@@ -932,40 +885,65 @@ createApp({
                 error_requests_chart.value.updateSeries([
                     {
                         name: "4XX",
-                        color: http_status_code_colors["4XX"],
-                        data: json_response.status_code.find(item => item.name === "4XX").data.map(point => [point[0] * 1000, point[1]])
+                        color: httpStatusColorCode["4XX"],
+                        data: jsonResponse.status_code.find(item => item.name === "4XX").data.map(point => [point[0] * 1000, point[1]])
                     },
                     {
                         name: "5XX",
-                        color: http_status_code_colors["5XX"],
-                        data: json_response.status_code.find(item => item.name == "5XX")?.data.map(point => [point[0] * 1000, point[1]])
+                        color: httpStatusColorCode["5XX"],
+                        data: jsonResponse.status_code.find(item => item.name == "5XX")?.data.map(point => [point[0] * 1000, point[1]])
                     }
                 ])
 
-                tableRows.value = Object.entries(json_response.overview_table.rows).map(([route, data]) => ({
-                    route,
-                    ...data
-                }))
-
-                Object.entries(json_response.requests_per_method).forEach(([key, val]) => {
+                Object.entries(jsonResponse.requests_per_method).forEach(([key, val]) => {
                     requests_per_method_count[key] = val
                 });
 
-                top_routes.value = json_response.top_routes
-                top_routes_total.value = Object.values(json_response.top_routes).reduce((sum, val) => sum + val, 0)
-                top_slowest_routes.value = json_response.top_slowest_routes
-                top_error_prone_routes.value = json_response.top_error_prone_requests
+                top_routes.value = jsonResponse.top_routes
+                top_routes_total.value = Object.values(jsonResponse.top_routes).reduce((sum, val) => sum + val, 0)
+                top_slowest_routes.value = jsonResponse.top_slowest_routes
+                top_error_prone_routes.value = jsonResponse.top_error_prone_requests
 
-                current_cpu_usage.value = parseInt(json_response.system_metrics.cpu_percent.slice(-1)[0]["avg"])
-                current_memory_usage.value = parseInt(json_response.system_metrics.memory_percent.slice(-1)[0]["avg"])
-                current_memory_used.value = parseInt(json_response.system_metrics.memory_used_mb.slice(-1)[0]["avg"])
-                current_memory_available.value = parseInt(json_response.system_metrics.memory_available_mb.slice(-1)[0]["avg"])
-                current_transmit_bytes.value = parseInt(json_response.system_metrics.network_io_sent.slice(-1)[0]["avg"] / (1024 * 1024))
-                current_received_bytes.value = parseInt(json_response.system_metrics.network_io_recv.slice(-1)[0]["avg"] / (1024 * 1024))
+                current_cpu_usage.value = parseFloat(jsonResponse.system_metrics.cpu_percent.slice(-1)[0]["avg"])
+                current_memory_usage.value = parseFloat(jsonResponse.system_metrics.memory_percent.slice(-1)[0]["avg"])
+                current_memory_used.value = parseInt(jsonResponse.system_metrics.memory_used_mb.slice(-1)[0]["avg"])
+                current_memory_available.value = parseInt(jsonResponse.system_metrics.memory_available_mb.slice(-1)[0]["avg"])
+                current_transmit_bytes.value = parseInt(jsonResponse.system_metrics.network_io_sent.slice(-1)[0]["avg"] / (1024 * 1024))
+                current_received_bytes.value = parseInt(jsonResponse.system_metrics.network_io_recv.slice(-1)[0]["avg"] / (1024 * 1024))
                 errorRefreshing.value = false
             } catch (error) {
                 errorRefreshing.value = true
-                console.log(error)
+            }
+        }
+
+        function savePreferences() {
+            console.log("prefs")
+        }
+
+        function refresh() {
+            destroyCharts()
+            renderCharts()
+            getData()
+        }
+
+        const resetModalShow = ref(false)
+        function cancelReset() {
+            resetModalShow.value = !resetModalShow.value
+            settingsDropdown.value = !settingsDropdown.value
+        }
+        async function resetMetricsStore() {
+            try {
+                const response = await fetch('/metrics/reset', { method: 'DELETE' })
+                if (!response.ok) {
+                    console.log("problem reseting store")
+                }
+                destroyCharts()
+                renderCharts()
+                getData()
+                settingsDropdown.value = !settingsDropdown.value
+                console.log("store reset!")
+            } catch (error) {
+                console.log("problem reseting store")
             }
         }
 
@@ -1010,28 +988,32 @@ createApp({
 
         onMounted(() => {
             renderCharts()
+            getTableOverview()
             getData()
             fetchInterval = setInterval(() => {
-                // example_chart.value.appendData({ data: [now(), 100] })
+                getTableOverview()
                 getData()
-            }, 5 * 1000)
+            }, 10 * 1000)
         });
 
         onUnmounted(() => {
             clearInterval(fetchInterval);
-            cpu_chart.value.destroy();
-            memory_chart.value.destroy();
-            memory_used_and_available_chart.value.destroy();
-            network_io_chart.value.destroy();
-            rpm_chart.value.destroy();
-            read_write_per_minute_chart.value.destroy();
-            latency_per_route_chart.value.destroy();
-            error_requests_chart.value.destroy();
-            // example_chart.value.destroy()
+            destroyCharts()
         })
 
         return {
-            tableRows,
+            overviewTable,
+            paginatedEntries,
+            tablePage,
+            totalPages,
+            tableLimit,
+            nextPage,
+            prevPage,
+
+            resetModalShow,
+            cancelReset,
+            resetMetricsStore,
+
             current_cpu_usage,
             current_memory_usage,
             current_memory_used,
@@ -1044,8 +1026,15 @@ createApp({
             top_slowest_routes,
             top_error_prone_routes,
             errorRefreshing,
+            timeRangeDropdown,
+            dateRanges,
+            filterTimeRange,
+            timeRangeKey,
+            settingsDropdown,
+            changeTimeRange,
             formatTime,
             getRelativeTime,
+            refresh,
         }
     },
 }).mount("#app");

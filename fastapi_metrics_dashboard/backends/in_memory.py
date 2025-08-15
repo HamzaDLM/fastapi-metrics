@@ -9,6 +9,7 @@ import psutil
 
 from fastapi_metrics_dashboard.backends.base import MetricsStore
 from fastapi_metrics_dashboard.utils import StatAggregator
+from fastapi_metrics_dashboard.logger import logger
 
 proc = psutil.Process(os.getpid())
 
@@ -55,16 +56,27 @@ class InMemoryMetricsStore(MetricsStore):
         self,
         max_log_samples: int = 10000,
         max_memory_percent: int = 95,
+        ttl_seconds: int = 3600,
     ):
         self._max_log_samples = max_log_samples
         self._max_memory_percent = max_memory_percent
+        self._ttl_seconds = ttl_seconds
 
         self._bucket_sizes = [5, 30, 300, 900]  # 5s, 30s, 5min, 15min
 
         # multi-bucket structure: {bucket_size: {bucket_start_timestamp: {route_path: Bucket}}}
-        self._request_buckets: DefaultDict[
-            int, DefaultDict[int, DefaultDict[str, Bucket]]
-        ] = defaultdict(
+        self._request_buckets = self._make_request_buckets()
+
+        # multi-bucket system metrics: {bucket_size: {bucket_start_timestamp: { metric_name: data }}}
+        self._system_buckets = self._make_system_buckets()
+        self._system_aggregators = self._make_system_aggregators()
+
+        self._lock = asyncio.Lock()
+
+    def _make_request_buckets(
+        self,
+    ) -> DefaultDict[int, DefaultDict[int, DefaultDict[str, Bucket]]]:
+        return defaultdict(
             lambda: defaultdict(
                 lambda: defaultdict(
                     lambda: Bucket(
@@ -79,15 +91,16 @@ class InMemoryMetricsStore(MetricsStore):
             )
         )
 
-        # multi-bucket system metrics: {bucket_size: {bucket_start_timestamp: { metric_name: data }}}
-        self._system_buckets: DefaultDict[
-            int,
-            DefaultDict[int, DefaultDict[SystemMetricKey, SystemLogEntry]],
-        ] = defaultdict(lambda: defaultdict(lambda: defaultdict()))
+    def _make_system_buckets(
+        self,
+    ) -> DefaultDict[
+        int, DefaultDict[int, DefaultDict[SystemMetricKey, SystemLogEntry]]
+    ]:
+        return defaultdict(lambda: defaultdict(lambda: defaultdict()))
 
-        self._system_aggregators = {}
-        for bucket_size in self._bucket_sizes:
-            self._system_aggregators[bucket_size] = {
+    def _make_system_aggregators(self) -> dict[int, dict[str, StatAggregator]]:
+        return {
+            bucket_size: {
                 metric: StatAggregator(
                     bucket_size_secs=bucket_size,
                     on_flush=self._create_flush_callback(metric, bucket_size),
@@ -101,8 +114,8 @@ class InMemoryMetricsStore(MetricsStore):
                     "network_io_recv",
                 ]
             }
-
-        self._lock = asyncio.Lock()
+            for bucket_size in self._bucket_sizes
+        }
 
     def _get_system_metrics_series(
         self, bucket_size: int, ts_from: int, ts_to: int
@@ -132,12 +145,13 @@ class InMemoryMetricsStore(MetricsStore):
         return callback
 
     async def record_system_metrics(self) -> None:
+        logger.debug("STORE: recording system metrics")
         memory_info = proc.memory_info()
         memory_used_mb = memory_info.rss / 1024 / 1024
         memory_available_mb = psutil.virtual_memory().available / 1024 / 1024
         memory_percent = (memory_info.rss / psutil.virtual_memory().total) * 100
         net_io = psutil.net_io_counters()
-        cpu_percent = round(proc.cpu_percent(interval=None), 2)
+        cpu_percent = round(proc.cpu_percent(interval=None), 3)
 
         async with self._lock:
             for aggregators in self._system_aggregators.values():
@@ -153,7 +167,9 @@ class InMemoryMetricsStore(MetricsStore):
     ) -> None:
         """Flush system metric data to a specific bucket size."""
         log_entry = SystemLogEntry(**data)
-
+        # logger.debug(
+        #     f"STORE: flushing system metrics for bucket size: {bucket_size} metric key: {SystemMetricKey}"
+        # )
         async with self._lock:
             self._system_buckets[bucket_size][log_entry["timestamp"]][key] = log_entry
 
@@ -312,15 +328,26 @@ class InMemoryMetricsStore(MetricsStore):
             ]
         )
 
-    def _get_table_overview(
+    def get_table_overview(
         self,
-        bucket_size: int,
         ts_from: int,
         ts_to: int,
-        page: int = 1,
-        limit: int = 10,
-        search_term: str | None = None,
     ) -> dict:
+        # {
+        #     "path": "route1",
+        #     "p99_latency": 200,
+        #     "error_count": 0,
+        #     "error_rate": 0.0,
+        #     "p99_max_latency": 300,
+
+        #     "request_per_minute": 2
+        #     "max_request_per_minute": 2
+        #     "status_codes": {
+        #     "2XX": 100,
+        #     "4XX": 0,
+        #     "5XX": 0,
+        # }
+        bucket_size = self._get_bucket_size(ts_to - ts_from)
         rows: DefaultDict[str, Any] = defaultdict(
             lambda: {
                 "last_called": 0,
@@ -332,22 +359,17 @@ class InMemoryMetricsStore(MetricsStore):
             }
         )
 
-        # "latencies": [],
-        # "count": 0,
-        # "errors": 0,
-        # "status_codes": defaultdict(int),
-        # "methods": defaultdict(int),
-        # "rw_count": defaultdict(int),
-
-        max_latency = 0
-        max_error_rate = 0
-        max_requests_min = 0
+        max_values = {
+            "p99_latency": 0,
+            "error_rate": 0,
+            "requests_min": 0,
+        }
 
         buckets = self._get_buckets_for_time_range(bucket_size, ts_from, ts_to)
         for ts, data in buckets.items():
             for route_path, values in data.items():
 
-                rows[route_path]["last_called"] = ts  # compare with latest
+                rows[route_path]["last_called"] = ts
                 rows[route_path]["total_call_count"] += values.get("count", 0)
                 rows[route_path]["total_errors_count"] += values["errors"]
                 # rows[route_path]["requests_per_min"] =
@@ -357,19 +379,19 @@ class InMemoryMetricsStore(MetricsStore):
                 rows[route_path]["p99_latency"].extend(values["latencies"])
 
         for _, data in rows.items():
-            data["p99_latency"] = statistics.quantiles(data["p99_latency"], n=100)[
-                int(0.99 * 100) - 1
-            ]
+            p99 = statistics.quantiles(data["p99_latency"], n=100)[int(0.99 * 100) - 1]
+            if p99 > max_values["p99_latency"]:
+                max_values["p99_latency"] = p99
+            data["p99_latency"] = p99
 
-        # # Sort by last_called desc
-        # items.sort(key=itemgetter("last_called"), reverse=True)
+        # # # Sort by last_called desc
+        # rows.sort(key=itemgetter("last_called"), reverse=True)
 
-        # # Max values (used for bar comparisons in UI)
-        # max_requests_per_min = max((i["requests_per_min"] for i in items), default=1)
-        # max_error_rate = max((i["error_rate"] for i in items), default=1)
-        # max_p99_latency = max((i["p99_latency"] for i in items), default=1)
+        # # # Max values (used for bar comparisons in UI)
+        # max_requests_per_min = max((i["requests_per_min"] for i in rows), default=1)
+        # max_error_rate = max((i["error_rate"] for i in rows), default=1)
+        # max_p99_latency = max((i["p99_latency"] for i in rows), default=1)
 
-        # Apply pagination
         # start = (page - 1) * limit
         # end = start + limit
         # paginated = rows[start:end]
@@ -382,9 +404,8 @@ class InMemoryMetricsStore(MetricsStore):
 
         return {
             "rows": rows,
+            "max_values": max_values,
             "total": len(rows),
-            "page": page,
-            "page_size": limit,
         }
 
     def _get_requests_per_method(self, bucket_size: int, ts_from: int, ts_to: int):
@@ -427,10 +448,7 @@ class InMemoryMetricsStore(MetricsStore):
     async def get_metrics(self, ts_from: int, ts_to: int) -> Dict[str, Any]:
         bucket_size = self._get_bucket_size(ts_to - ts_from)
 
-        # print(
-        #     f"ts from: {ts_from}, ts to: {ts_to} diff: {ts_to - ts_from} bucket size: {bucket_size}"
-        # )
-
+        # TODO: why do we have a lock here ?
         async with self._lock:
             return {
                 "latencies": self._get_latency_series(bucket_size, ts_from, ts_to),
@@ -439,7 +457,6 @@ class InMemoryMetricsStore(MetricsStore):
                     bucket_size, ts_from, ts_to
                 ),
                 "top_routes": self._get_top_routes(bucket_size, ts_from, ts_to),
-                "overview_table": self._get_table_overview(bucket_size, ts_from, ts_to),
                 "requests_per_method": self._get_requests_per_method(
                     bucket_size, ts_from, ts_to
                 ),
@@ -461,10 +478,28 @@ class InMemoryMetricsStore(MetricsStore):
             }
 
     def _is_memory_safe(self) -> bool:
-        return psutil.virtual_memory().percent < self._max_memory_percent
+        avail_memory = psutil.virtual_memory().percent
+        logger.debug(f"STORE: check if memory safe, {avail_memory} used")
+        return avail_memory < self._max_memory_percent
 
-    def _clean():
-        pass
+    def _cleanup_expired_ttl(self) -> None:
+        """Clean expired data after TTL"""
+        logger.debug("STORE: cleaning up expired data...")
+        now = time.time()
 
-    def reset():
-        pass
+        for bucket_size in list(self._request_buckets.keys()):
+            for bucket_start in list(self._request_buckets[bucket_size].keys()):
+                if now - bucket_start > self._ttl_seconds:
+                    del self._request_buckets[bucket_size][bucket_start]
+
+        for bucket_size in list(self._system_buckets.keys()):
+            for bucket_start in list(self._system_buckets[bucket_size].keys()):
+                if now - bucket_start > self._ttl_seconds:
+                    del self._request_buckets[bucket_size][bucket_start]
+
+    def reset(self) -> None:
+        """Reset all in-memory metric buckets"""
+        self._request_buckets = self._make_request_buckets()
+        self._system_buckets = self._make_system_buckets()
+        self._system_aggregators = self._make_system_aggregators()
+        logger.debug("STORE: store state reset")

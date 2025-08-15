@@ -19,7 +19,7 @@ class FastAPIMetricsDashboard:
     _sys_metrics_sampling_interval: ClassVar[int] = 5  # seconds
     _enable_dashboard_ui: ClassVar[bool] = True
     _dashboard_ui_path: ClassVar[str] = "/metrics"
-    # _retention_rate:
+    _cleanup_expired_rate: ClassVar[int] = 60 * 60  # seconds
 
     @classmethod
     def init(cls, app: FastAPI) -> None:
@@ -43,6 +43,7 @@ class FastAPIMetricsDashboard:
         @asynccontextmanager
         async def injected_lifespan(app: FastAPI):
             cls._tasks[id(app)] = asyncio.create_task(cls._collect_sys_metrics_loop())
+            cls._tasks[id(app)] = asyncio.create_task(cls._cleanup())
 
             if original_lifespan:
                 async with original_lifespan(app):
@@ -89,4 +90,6 @@ class FastAPIMetricsDashboard:
 
     @classmethod
     async def _cleanup(cls):
-        pass
+        while True:
+            get_metrics_store()._cleanup_expired_ttl()
+            await asyncio.sleep(cls._cleanup_expired_rate)
