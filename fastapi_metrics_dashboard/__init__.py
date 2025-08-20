@@ -9,8 +9,13 @@ from fastapi.staticfiles import StaticFiles
 from fastapi_metrics_dashboard.middleware import MetricsMiddleware
 from fastapi_metrics_dashboard.router import metrics_router
 from fastapi_metrics_dashboard.store import get_metrics_store
+from fastapi_metrics_dashboard.backends.in_memory import InMemoryMetricsStore
+from fastapi_metrics_dashboard.backends.redis import RedisMetricsStore
+from fastapi_metrics_dashboard.backends.sqlite import SQLiteMetricsStore
 
 __all__ = ["MetricsMiddleware", "metrics_router"]
+
+# ok talking about my library fastapi-metrics-dashboard, lets refactor things, for the moment I did all the logic in in_memory.py, but I wanna move shared logic into base.py and then do specific implementations and appropriate bucket sizes/retention time per memory type in_memory/redis/sqlite
 
 
 class FastAPIMetricsDashboard:
@@ -20,9 +25,17 @@ class FastAPIMetricsDashboard:
     _enable_dashboard_ui: ClassVar[bool] = True
     _dashboard_ui_path: ClassVar[str] = "/metrics"
     _cleanup_expired_rate: ClassVar[int] = 60 * 60  # seconds
+    _routes_ignored: ClassVar[list[str]] = []
 
     @classmethod
-    def init(cls, app: FastAPI) -> None:
+    def init(
+        cls,
+        app: FastAPI,
+        store: InMemoryMetricsStore | RedisMetricsStore | SQLiteMetricsStore,
+        config: dict,
+    ) -> None:
+        print("store:", type(store))
+        print("config:", config)
         if id(app) in cls._initialized_apps:
             return
 

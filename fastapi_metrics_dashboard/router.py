@@ -18,7 +18,7 @@ async def get_metrics(ts_from: int, ts_to: int | None = None):
     if ts_to is None:
         ts_to = int(time.time())
 
-    data = await get_metrics_store().get_metrics(ts_from=ts_from, ts_to=ts_to)
+    data = get_metrics_store().get_metrics(ts_from=ts_from, ts_to=ts_to)
     return JSONResponse(content=data)
 
 

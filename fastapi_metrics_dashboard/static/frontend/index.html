@@ -68,7 +68,10 @@
                             <span class="bg-[#10B981] w-2 h-2 rounded-full"></span>
                             live
                         </p>
-                        <p v-else class="text-zinc-400 font-bold">offline</p>
+                        <p v-else class="flex items-center gap-1 text-zinc-400 font-bold">
+                            <span class="bg-zinc-400 w-2 h-2 rounded-full"></span>
+                            offline
+                        </p>
                     </div>
                     <div class="relative inline-block">
                         <button @click="timeRangeDropdown = !timeRangeDropdown"
@@ -96,6 +99,106 @@
                                 d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6c0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0 0 20 12c0-4.42-3.58-8-8-8m0 14c-3.31 0-6-2.69-6-6c0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 0 0 4 12c0 4.42 3.58 8 8 8v3l4-4l-4-4z" />
                         </svg>
                     </button>
+                    <button @click="toggleDarkMode()" class="tooling-button">
+                        <svg v-if="darkMode" xmlns="http://www.w3.org/2000/svg" class="text-zinc-400 w-4 h-4"
+                            viewBox="0 0 24 24"><!-- Icon from Material Line Icons by Vjacheslav Trushkin - https://github.com/cyberalien/line-md/blob/master/license.txt -->
+                            <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                                stroke-width="2">
+                                <path stroke-dasharray="2" stroke-dashoffset="2" d="M12 19v1M19 12h1M12 5v-1M5 12h-1">
+                                    <animate fill="freeze" attributeName="d" begin="1.2s" dur="0.2s"
+                                        values="M12 19v1M19 12h1M12 5v-1M5 12h-1;M12 21v1M21 12h1M12 3v-1M3 12h-1" />
+                                    <animate fill="freeze" attributeName="stroke-dashoffset" begin="1.2s" dur="0.2s"
+                                        values="2;0" />
+                                </path>
+                                <path stroke-dasharray="2" stroke-dashoffset="2"
+                                    d="M17 17l0.5 0.5M17 7l0.5 -0.5M7 7l-0.5 -0.5M7 17l-0.5 0.5">
+                                    <animate fill="freeze" attributeName="d" begin="1.4s" dur="0.2s"
+                                        values="M17 17l0.5 0.5M17 7l0.5 -0.5M7 7l-0.5 -0.5M7 17l-0.5 0.5;M18.5 18.5l0.5 0.5M18.5 5.5l0.5 -0.5M5.5 5.5l-0.5 -0.5M5.5 18.5l-0.5 0.5" />
+                                    <animate fill="freeze" attributeName="stroke-dashoffset" begin="1.4s" dur="0.2s"
+                                        values="2;0" />
+                                </path>
+                                <animateTransform attributeName="transform" dur="30s" repeatCount="indefinite"
+                                    type="rotate" values="0 12 12;360 12 12" />
+                            </g>
+                            <g fill="currentColor">
+                                <path
+                                    d="M15.22 6.03L17.75 4.09L14.56 4L13.5 1L12.44 4L9.25 4.09L11.78 6.03L10.87 9.09L13.5 7.28L16.13 9.09L15.22 6.03Z">
+                                    <animate fill="freeze" attributeName="fill-opacity" dur="0.4s" values="1;0" />
+                                </path>
+                                <path
+                                    d="M19.61 12.25L21.25 11L19.19 10.95L18.5 9L17.81 10.95L15.75 11L17.39 12.25L16.8 14.23L18.5 13.06L20.2 14.23L19.61 12.25Z">
+                                    <animate fill="freeze" attributeName="fill-opacity" begin="0.2s" dur="0.4s"
+                                        values="1;0" />
+                                </path>
+                            </g>
+                            <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                                stroke-width="2"
+                                d="M7 6 C7 12.08 11.92 17 18 17 C18.53 17 19.05 16.96 19.56 16.89 C17.95 19.36 15.17 21 12 21 C7.03 21 3 16.97 3 12 C3 8.83 4.64 6.05 7.11 4.44 C7.04 4.95 7 5.47 7 6 Z">
+                                <set fill="freeze" attributeName="opacity" begin="0.6s" to="0" />
+                            </path>
+                            <mask id="lineMdMoonToSunnyOutlineLoopTransition0">
+                                <circle cx="12" cy="12" r="12" fill="#fff" />
+                                <circle cx="12" cy="12" r="8">
+                                    <animate fill="freeze" attributeName="r" begin="0.6s" dur="0.4s" values="8;4" />
+                                </circle>
+                                <circle cx="18" cy="6" r="12" fill="#fff">
+                                    <animate fill="freeze" attributeName="cx" begin="0.6s" dur="0.4s" values="18;22" />
+                                    <animate fill="freeze" attributeName="cy" begin="0.6s" dur="0.4s" values="6;2" />
+                                    <animate fill="freeze" attributeName="r" begin="0.6s" dur="0.4s" values="12;3" />
+                                </circle>
+                                <circle cx="18" cy="6" r="10">
+                                    <animate fill="freeze" attributeName="cx" begin="0.6s" dur="0.4s" values="18;22" />
+                                    <animate fill="freeze" attributeName="cy" begin="0.6s" dur="0.4s" values="6;2" />
+                                    <animate fill="freeze" attributeName="r" begin="0.6s" dur="0.4s" values="10;1" />
+                                </circle>
+                            </mask>
+                            <circle cx="12" cy="12" r="10" mask="url(#lineMdMoonToSunnyOutlineLoopTransition0)"
+                                opacity="0" fill="currentColor">
+                                <animate fill="freeze" attributeName="r" begin="0.6s" dur="0.4s" values="10;6" />
+                                <set fill="freeze" attributeName="opacity" begin="0.6s" to="1" />
+                            </circle>
+                        </svg>
+                        <svg v-else xmlns="http://www.w3.org/2000/svg" class="text-zinc-400 w-4 h-4"
+                            viewBox="0 0 24 24"><!-- Icon from Material Line Icons by Vjacheslav Trushkin - https://github.com/cyberalien/line-md/blob/master/license.txt -->
+                            <g fill="currentColor" fill-opacity="0">
+                                <path
+                                    d="M15.22 6.03l2.53-1.94L14.56 4L13.5 1l-1.06 3l-3.19.09l2.53 1.94l-.91 3.06l2.63-1.81l2.63 1.81z">
+                                    <animate id="lineMdMoonLoop0" fill="freeze" attributeName="fill-opacity"
+                                        begin="0.7s;lineMdMoonLoop0.begin+6s" dur="0.4s" values="0;1" />
+                                    <animate fill="freeze" attributeName="fill-opacity"
+                                        begin="lineMdMoonLoop0.begin+2.2s" dur="0.4s" values="1;0" />
+                                </path>
+                                <path
+                                    d="M13.61 5.25L15.25 4l-2.06-.05L12.5 2l-.69 1.95L9.75 4l1.64 1.25l-.59 1.98l1.7-1.17l1.7 1.17z">
+                                    <animate fill="freeze" attributeName="fill-opacity" begin="lineMdMoonLoop0.begin+3s"
+                                        dur="0.4s" values="0;1" />
+                                    <animate fill="freeze" attributeName="fill-opacity"
+                                        begin="lineMdMoonLoop0.begin+5.2s" dur="0.4s" values="1;0" />
+                                </path>
+                                <path
+                                    d="M19.61 12.25L21.25 11l-2.06-.05L18.5 9l-.69 1.95l-2.06.05l1.64 1.25l-.59 1.98l1.7-1.17l1.7 1.17z">
+                                    <animate fill="freeze" attributeName="fill-opacity"
+                                        begin="lineMdMoonLoop0.begin+0.4s" dur="0.4s" values="0;1" />
+                                    <animate fill="freeze" attributeName="fill-opacity"
+                                        begin="lineMdMoonLoop0.begin+2.8s" dur="0.4s" values="1;0" />
+                                </path>
+                                <path
+                                    d="M20.828 9.731l1.876-1.439l-2.366-.067L19.552 6l-.786 2.225l-2.366.067l1.876 1.439L17.601 12l1.951-1.342L21.503 12z">
+                                    <animate fill="freeze" attributeName="fill-opacity"
+                                        begin="lineMdMoonLoop0.begin+3.4s" dur="0.4s" values="0;1" />
+                                    <animate fill="freeze" attributeName="fill-opacity"
+                                        begin="lineMdMoonLoop0.begin+5.6s" dur="0.4s" values="1;0" />
+                                </path>
+                            </g>
+                            <path fill="none" stroke="currentColor" stroke-dasharray="56" stroke-dashoffset="56"
+                                stroke-linecap="round" stroke-linejoin="round" stroke-width="1.3"
+                                d="M7 6 C7 12.08 11.92 17 18 17 C18.53 17 19.05 16.96 19.56 16.89 C17.95 19.36 15.17 21 12 21 C7.03 21 3 16.97 3 12 C3 8.83 4.64 6.05 7.11 4.44 C7.04 4.95 7 5.47 7 6 Z">
+                                <animate fill="freeze" attributeName="stroke-dashoffset" dur="0.6s" values="56;0" />
+                            </path>
+                        </svg>
+                    </button>
+
+
                     <div class="relative inline-block">
                         <button @click="settingsDropdown = !settingsDropdown" class="tooling-button px-0">
                             <svg xmlns="http://www.w3.org/2000/svg" class="text-zinc-400 w-4 h-4"
@@ -219,25 +322,9 @@
                         <div class="flex items-center justify-between">
                             <p class="graph_title">Requests per minute (status code)</p>
                             <div class="flex gap-4 pr-4 text-xs text-zinc-400">
-                                <div class="flex gap-1 items-center">
-                                    <div class="rounded bg-[#64748b] w-3 h-3"></div>
-                                    <p class="pt-1">1XX</p>
-                                </div>
-                                <div class="flex gap-1 items-center">
-                                    <div class="rounded bg-[#10B981] w-3 h-3"></div>
-                                    <p class="pt-1">2XX</p>
-                                </div>
-                                <div class="flex gap-1 items-center">
-                                    <div class="rounded bg-[#eab308] w-3 h-3"></div>
-                                    <p class="pt-1">3XX</p>
-                                </div>
-                                <div class="flex gap-1 items-center">
-                                    <div class="rounded bg-[#f97316] w-3 h-3"></div>
-                                    <p class="pt-1">4XX</p>
-                                </div>
-                                <div class="flex gap-1 items-center">
-                                    <div class="rounded bg-[#ef4444] w-3 h-3"></div>
-                                    <p class="pt-1">5XX</p>
+                                <div v-for="(color, statuscode) in httpStatusColorCode" class="flex gap-1 items-center">
+                                    <div class="rounded w-3 h-3" :class="`bg-[${color}]`"></div>
+                                    <p class="pt-1">{{ statuscode }}</p>
                                 </div>
                             </div>
                         </div>
@@ -261,12 +348,13 @@
                     </div>
                     <div class="col-span-4 lg:col-span-3 graph_container">
                         <p class="graph_title">Top 5 Transactions (%)</p>
-                        <p class="text-xxs px-4 -mt-2 text-zinc-600">in the last 30 minutes</p>
+                        <!-- <p class="text-xxs px-4 -mt-2 text-zinc-600">in the last 30 minutes</p> -->
                         <div class="text-xs px-4 pt-3">
                             <div v-for="(val, key) of top_routes">
-                                <div class="mb-1 font-medium text-zinc-300 flex justify-between">
-                                    <p>{{ key }}</p>
-                                    <p class="font-bold"> {{ Math.round((val * 100) / top_routes_total) }}%</p>
+                                <div class="mb-1 font-medium flex justify-between">
+                                    <p class="text-zinc-400">{{ key }}</p>
+                                    <p class="font-bold text-zinc-200">{{ Math.round((val *100) / top_routes_total)}}%
+                                    </p>
                                 </div>
                                 <div class="w-full rounded-full h-2 mb-4 bg-zinc-800">
                                     <div class="h-2 rounded-full bg-[#10B981]"
@@ -332,8 +420,8 @@
                                     <path fill="currentColor"
                                         d="m19.6 21l-6.3-6.3q-.75.6-1.725.95T9.5 16q-2.725 0-4.612-1.888T3 9.5t1.888-4.612T9.5 3t4.613 1.888T16 9.5q0 1.1-.35 2.075T14.7 13.3l6.3 6.3zM9.5 14q1.875 0 3.188-1.312T14 9.5t-1.312-3.187T9.5 5T6.313 6.313T5 9.5t1.313 3.188T9.5 14" />
                                 </svg>
-                                <input type="text" class="w-full placeholder:text-zinc-700 outline-none"
-                                    placeholder="search routes">
+                                <input v-model="tableSearchTerm" type="text"
+                                    class="w-full placeholder:text-zinc-700 outline-none" placeholder="search routes">
                             </div>
                         </div>
                         <div class="w-full text-left pt-2 border-t border-zinc-800">
@@ -342,7 +430,8 @@
                                     <th>ENDPOINT</th>
                                     <th>LAST CALLED</th>
                                     <th>CALL COUNT</th>
-                                    <th>REQUESTS/MIN</th>
+                                    <th>REQUESTS PER TIME</th>
+                                    <th>THROUGHPUT</th>
                                     <th>ERROR RATE</th>
                                     <th>P99 LATENCY</th>
                                 </tr>
@@ -353,12 +442,13 @@
                                         {{ getRelativeTime(value.last_called * 1000) }}
                                     </td>
                                     <td>{{ value.total_call_count }}</td>
-                                    <td>{{ value.requests_per_min }}</td>
+                                    <td>{{ value.requests_per_minute }} rpm</td>
+                                    <td>{{ value.throughput_rps }} rps</td>
                                     <td>
                                         {{ value.error_rate }}%
                                         <div class="w-10/12 rounded h-0.5 bg-zinc-800">
-                                            <div class="h-0.5 rounded bg-red-400"
-                                                v-if="overviewTable.max_values.error_rate > 0"
+                                            <div v-if="overviewTable.max_values.error_rate > 0"
+                                                class="h-0.5 rounded bg-red-400"
                                                 :style="{ width: Math.round((value.error_rate * 100) / overviewTable.max_values.error_rate) + '%' }">
                                             </div>
                                         </div>
@@ -462,7 +552,8 @@
                                         <p class="font-bold">{{ val }}</p>
                                     </div>
                                     <div class="w-full rounded-full h-2 mb-4 bg-zinc-700">
-                                        <div class="h-2 rounded-full bg-zinc-300"
+                                        <div v-if="Math.max(...Object.values(top_error_prone_routes)) > 0"
+                                            class="h-2 rounded-full bg-zinc-300"
                                             :style="{ width: Math.round((val*100)/Math.max(...Object.values(top_error_prone_routes)))  + '%' }">
                                         </div>
                                     </div>

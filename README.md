@@ -38,7 +38,7 @@ or
 
 Check the `examples` folder for more.
 
-```
+```python
 from fastapi import FastAPI
 
 from fastapi_metrics_dashboard import FastAPIMetricsDashboard

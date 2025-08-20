@@ -4,6 +4,9 @@ createApp({
     setup() {
         let fetchInterval;
 
+        const darkMode = ref(true)
+        const toggleDarkMode = () => darkMode.value = !darkMode.value
+
         const MS = {
             minute: 60_000,
             hour: 3_600_000,
@@ -79,22 +82,28 @@ createApp({
         const tableLimit = ref(6)
         const tableEntries = computed(() => Object.entries(overviewTable.value.rows))
         const totalPages = computed(() => Math.ceil(tableEntries.value.length / tableLimit.value))
+        const tableSearchTerm = ref('')
 
         const paginatedEntries = computed(() => {
+            searchTerm = tableSearchTerm.value
             const start = (tablePage.value - 1) * tableLimit.value
             const end = start + tableLimit.value
-            return Object.fromEntries(tableEntries.value.slice(start, end))
+            obj = tableEntries.value
+            if (searchTerm) {
+                obj = obj.filter(([key, _]) => {
+                    return key.includes(searchTerm)
+                })
+            }
+            return Object.fromEntries(obj.slice(start, end))
         })
 
         function nextPage() {
-            console.log("next page")
             if (tablePage.value < totalPages.value) {
                 tablePage.value++
             }
         }
 
         function prevPage() {
-            console.log("prev page")
             if (tablePage.value > 1) {
                 tablePage.value--
             }
@@ -176,13 +185,22 @@ createApp({
                     show: false,
                 },
                 labels: {
-                    formatter: (value) => timeLabelformatter(value)
+                    formatter: (value) => timeLabelformatter(value),
+                    style: {
+                        colors: "#595959"
+                    }
                 },
                 min: Date.now() - filterTimeRange.value,
             },
             yaxis: {
                 min: 0,
                 max: 100,
+                labels: {
+                    formatter: (value) => Math.round(value),
+                    style: {
+                        colors: "#595959"
+                    }
+                }
             },
             series: [],
         });
@@ -252,13 +270,22 @@ createApp({
                     show: false,
                 },
                 labels: {
-                    formatter: (value) => timeLabelformatter(value)
+                    formatter: (value) => timeLabelformatter(value),
+                    style: {
+                        colors: "#595959"
+                    }
                 },
                 min: Date.now() - filterTimeRange.value,
             },
             yaxis: {
                 min: 0,
                 max: 100,
+                labels: {
+                    formatter: (value) => Math.round(value),
+                    style: {
+                        colors: "#595959"
+                    }
+                }
             },
             series: [],
         });
@@ -325,14 +352,18 @@ createApp({
                     show: false,
                 },
                 labels: {
-                    formatter: (value) => timeLabelformatter(value)
+                    formatter: (value) => timeLabelformatter(value),
+                    style: {
+                        colors: "#595959"
+                    }
                 },
                 min: Date.now() - filterTimeRange.value,
             },
             yaxis: {
                 labels: {
-                    formatter: function (val) {
-                        return Math.round(val)
+                    formatter: (val) => Math.round(val),
+                    style: {
+                        colors: "#595959"
                     }
                 }
             },
@@ -401,14 +432,18 @@ createApp({
                     show: false,
                 },
                 labels: {
-                    formatter: (value) => timeLabelformatter(value)
+                    formatter: (value) => timeLabelformatter(value),
+                    style: {
+                        colors: "#595959"
+                    }
                 },
                 min: Date.now() - filterTimeRange.value,
             },
             yaxis: {
                 labels: {
-                    formatter: function (val) {
-                        return Math.round(val / (1024 * 1024))
+                    formatter: (val) => Math.round(val / (1024 * 1024)),
+                    style: {
+                        colors: "#595959"
                     }
                 }
             },
@@ -482,15 +517,18 @@ createApp({
                     show: false,
                 },
                 labels: {
-                    formatter: (value) => timeLabelformatter(value)
+                    formatter: (value) => timeLabelformatter(value),
+                    style: {
+                        colors: "#595959"
+                    }
                 },
                 min: Date.now() - filterTimeRange.value,
                 max: Date.now(),
             },
             yaxis: {
                 labels: {
-                    formatter: function (val) {
-                        return Math.round(val / (1024 * 1024))
+                    style: {
+                        colors: "#595959"
                     }
                 }
             },
@@ -558,6 +596,9 @@ createApp({
                             hour: "2-digit",
                             minute: "2-digit",
                         });
+                    },
+                    style: {
+                        colors: "#595959"
                     }
                 },
                 min: Date.now() - filterTimeRange.value,
@@ -566,8 +607,9 @@ createApp({
             yaxis: {
                 min: 0,
                 labels: {
-                    formatter: function (val) {
-                        return Math.round(val)
+                    formatter: (val) => Math.round(val),
+                    style: {
+                        colors: "#595959"
                     }
                 }
             },
@@ -638,6 +680,9 @@ createApp({
                             hour: "2-digit",
                             minute: "2-digit",
                         });
+                    },
+                    style: {
+                        colors: "#595959"
                     }
                 },
                 min: Date.now() - filterTimeRange.value,
@@ -646,7 +691,10 @@ createApp({
             yaxis: {
                 min: 0,
                 labels: {
-                    formatter: (val) => Math.round(formatTime(val, false))
+                    formatter: (val) => Math.round(formatTime(val, false)),
+                    style: {
+                        colors: "#595959"
+                    }
                 }
             },
             series: [],
@@ -708,10 +756,20 @@ createApp({
                     show: false,
                 },
                 labels: {
-                    formatter: (value) => timeLabelformatter(value)
+                    formatter: (value) => timeLabelformatter(value),
+                    style: {
+                        colors: "#595959"
+                    }
                 },
                 min: Date.now() - filterTimeRange.value,
                 max: Date.now(),
+            },
+            yaxis: {
+                labels: {
+                    style: {
+                        colors: "#595959"
+                    }
+                }
             },
             legend: {
                 show: false,
@@ -1000,11 +1058,15 @@ createApp({
         })
 
         return {
+            toggleDarkMode,
+            darkMode,
+
             overviewTable,
             paginatedEntries,
             tablePage,
             totalPages,
             tableLimit,
+            tableSearchTerm,
             nextPage,
             prevPage,
 
@@ -1033,6 +1095,8 @@ createApp({
             formatTime,
             getRelativeTime,
             refresh,
+
+            httpStatusColorCode,
         }
     },
 }).mount("#app");

@@ -1,0 +1,2 @@
+class SQLiteMetricsStore:
+    pass
