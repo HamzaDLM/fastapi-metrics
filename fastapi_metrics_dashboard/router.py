@@ -10,18 +10,22 @@ from fastapi_metrics_dashboard.utils import ts_to_readable, pin_auth_basic
 
 
 def get_metrics_router(store: MetricsStore, config: Config) -> APIRouter:
-    metrics_router = APIRouter(
-        prefix="/metrics", dependencies=[Depends(pin_auth_basic(config))]
-    )
+    metrics_router = APIRouter()
+    unprotected_router = APIRouter()
 
-    @metrics_router.get(
+    @unprotected_router.get(
         "/config-b887e852-bd12-41f2-b057-1bd31eb5443e", include_in_schema=True
     )
     async def get_config():
-        return {"pin_required": config.ui_pin}
+        return {"pin_required": bool(config.ui_pin)}
 
-    @metrics_router.get(
-        f"{config.custom_path}/json",
+    # config.custom_path requires check
+    conditionally_protected_router = APIRouter(
+        prefix=config.custom_path, dependencies=[Depends(pin_auth_basic(config))]
+    )
+
+    @conditionally_protected_router.get(
+        "/json",
         status_code=200,
         include_in_schema=config.include_in_openapi,
     )
@@ -36,8 +40,8 @@ def get_metrics_router(store: MetricsStore, config: Config) -> APIRouter:
         data = store.get_metrics(ts_from=ts_from, ts_to=ts_to)
         return JSONResponse(content=data)
 
-    @metrics_router.get(
-        f"{config.custom_path}/table_overview",
+    @conditionally_protected_router.get(
+        "/table_overview",
         status_code=200,
         include_in_schema=config.include_in_openapi,
     )
@@ -55,8 +59,8 @@ def get_metrics_router(store: MetricsStore, config: Config) -> APIRouter:
         data = store.get_table_overview(ts_from, ts_to)
         return JSONResponse(content=data)
 
-    @metrics_router.delete(
-        f"{config.custom_path}/reset",
+    @conditionally_protected_router.delete(
+        "/reset",
         status_code=204,
         include_in_schema=config.include_in_openapi,
     )
@@ -64,5 +68,8 @@ def get_metrics_router(store: MetricsStore, config: Config) -> APIRouter:
         logger.debug("ROUTER: reset store")
         store.reset()
         return JSONResponse(content="metrics store reset!")
+
+    metrics_router.include_router(unprotected_router)
+    metrics_router.include_router(conditionally_protected_router)
 
     return metrics_router

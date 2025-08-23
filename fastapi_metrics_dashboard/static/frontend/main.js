@@ -20,25 +20,31 @@ createApp({
             }
         }
 
-        // getting config from backend
-        function getConfig() {
-            const response = { authRequired: true }
-            if 
+        async function getConfig() {
+            try {
+                const response = await fetch("/config-b887e852-bd12-41f2-b057-1bd31eb5443e")
+                if (!response.ok) {
+                    console.log("problem getting data")
+                }
+                const jsonResponse = await response.json()
+                if (jsonResponse.pin_required) {
+                    await tryPIN()
+                }
+            } catch (err) {
+                console.log("problem")
+            }
         }
 
-        function tryPIN() {
-            const response = { correct: false }
+        async function tryPIN() {
             const url = `/metrics/json?ts_from=${tsFrom}`
             try {
                 const response = await fetch(url)
                 if (!response.ok) {
-                    errorRefreshing.value = true
                     console.log("problem getting data")
                 }
             } catch (err) {
                 console.log("problem")
             }
-
         }
 
         let fetchInterval;
