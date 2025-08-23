@@ -15,10 +15,10 @@ def get_metrics_router(store: MetricsStore, config: Config) -> APIRouter:
     )
 
     @metrics_router.get(
-        "/config-b887e852-bd12-41f2-b057-1bd31eb5443e", include_in_schema=False
+        "/config-b887e852-bd12-41f2-b057-1bd31eb5443e", include_in_schema=True
     )
     async def get_config():
-        return {}
+        return {"pin_required": config.ui_pin}
 
     @metrics_router.get(
         f"{config.custom_path}/json",

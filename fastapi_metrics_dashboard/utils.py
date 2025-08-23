@@ -73,10 +73,16 @@ def pin_auth_basic(config: Config):
     async def _auth(credentials: HTTPBasicCredentials = Depends(security)):
         if config.ui_pin is None:
             return
-        if int(credentials.password) != config.ui_pin:
+        if credentials.password != str(config.ui_pin):
             raise HTTPException(status_code=401)
 
     return _auth
+
+
+def set_ui_pin(pin: str) -> str:
+    if not pin.isdigit() or len(pin) != 4:
+        raise ValueError("PIN must be exactly 4 digits")
+    return pin
 
 
 def dd_to_dict(d: Any) -> Any:

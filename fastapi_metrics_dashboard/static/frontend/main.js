@@ -28,7 +28,16 @@ createApp({
 
         function tryPIN() {
             const response = { correct: false }
-
+            const url = `/metrics/json?ts_from=${tsFrom}`
+            try {
+                const response = await fetch(url)
+                if (!response.ok) {
+                    errorRefreshing.value = true
+                    console.log("problem getting data")
+                }
+            } catch (err) {
+                console.log("problem")
+            }
 
         }
 
@@ -868,7 +877,6 @@ createApp({
 
         async function getTableOverview() {
             const tsFrom = Math.round((Date.now() - filterTimeRange.value) / 1000)
-            // & search_term=${ null}`
             const url = `/metrics/table_overview?ts_from=${tsFrom}&page=${1}&limit=${10}`
             try {
                 const response = await fetch(url)
