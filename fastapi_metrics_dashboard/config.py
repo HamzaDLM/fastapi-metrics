@@ -7,3 +7,4 @@ class Config:
     ignored_routes: list[str] = field(default_factory=list)
     enable_dashboard_ui: bool = True
     custom_path: str = "/metrics"
+    include_in_openapi: bool = False

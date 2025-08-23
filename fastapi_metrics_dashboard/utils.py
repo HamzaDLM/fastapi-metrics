@@ -2,6 +2,9 @@ import time
 from collections import defaultdict, deque
 from datetime import datetime
 from typing import Any, Callable, Deque
+from fastapi_metrics_dashboard.config import Config
+from fastapi.security import HTTPBasicCredentials, HTTPBasic
+from fastapi import Depends, HTTPException
 
 
 class StatAggregator:
@@ -61,6 +64,19 @@ class StatAggregator:
             self.samples.popleft()
 
         self.last_flush = flush_timestamp
+
+
+security = HTTPBasic()
+
+
+def pin_auth_basic(config: Config):
+    async def _auth(credentials: HTTPBasicCredentials = Depends(security)):
+        if config.ui_pin is None:
+            return
+        if int(credentials.password) != config.ui_pin:
+            raise HTTPException(status_code=401)
+
+    return _auth
 
 
 def dd_to_dict(d: Any) -> Any:

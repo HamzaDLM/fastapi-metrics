@@ -33,7 +33,9 @@ in_memory_store = InMemoryMetricsStore()
 # async sqlite client
 
 
-FastAPIMetricsDashboard.init(app, in_memory_store, config=Config(ui_pin=1997))
+FastAPIMetricsDashboard.init(
+    app, in_memory_store, config=Config(ui_pin=1997, include_in_openapi=True)
+)
 
 
 @app.get("/")
