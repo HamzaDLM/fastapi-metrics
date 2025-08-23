@@ -2,51 +2,6 @@ const { createApp, onMounted, onUnmounted, computed, ref } = Vue;
 
 createApp({
     setup() {
-        // PIN
-        const requiresAuthed = ref(false)
-        const pinIsCorrect = ref(false)
-
-        function handleChange(input, index) {
-            const value = input.value.replace(/[^0-9]/g, '')
-            input.value = value
-            if (value && index < inputs.length - 1) {
-                inputs[index + 1].focus(); // Move to the next input
-            }
-        }
-
-        function handleBackspace(event, index) {
-            if (event.key === 'Backspace' && !event.currentTarget.value && index > 0) {
-                inputs[index - 1].focus(); // Move to the previous input
-            }
-        }
-
-        async function getConfig() {
-            try {
-                const response = await fetch("/config-b887e852-bd12-41f2-b057-1bd31eb5443e")
-                if (!response.ok) {
-                    console.log("problem getting data")
-                }
-                const jsonResponse = await response.json()
-                if (jsonResponse.pin_required) {
-                    await tryPIN()
-                }
-            } catch (err) {
-                console.log("problem")
-            }
-        }
-
-        async function tryPIN() {
-            const url = `/metrics/json?ts_from=${tsFrom}`
-            try {
-                const response = await fetch(url)
-                if (!response.ok) {
-                    console.log("problem getting data")
-                }
-            } catch (err) {
-                console.log("problem")
-            }
-        }
-
         let fetchInterval;
 
         const darkMode = ref(true)
@@ -1020,6 +975,17 @@ createApp({
             console.log("prefs")
         }
 
+        async function getConfig() {
+            try {
+                const response = await fetch("/config-b887e852-bd12-41f2-b057-1bd31eb5443e")
+                if (!response.ok) {
+                    console.log("problem getting config")
+                }
+            } catch (err) {
+                console.log("problem getting config")
+            }
+        }
+
         function refresh() {
             destroyCharts()
             renderCharts()
@@ -1102,8 +1068,6 @@ createApp({
         })
 
         return {
-            requiresAuthed,
-
             toggleDarkMode,
             darkMode,
 

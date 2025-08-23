@@ -34,7 +34,7 @@ in_memory_store = InMemoryMetricsStore()
 
 
 FastAPIMetricsDashboard.init(
-    app, in_memory_store, config=Config(ui_pin=1997, include_in_openapi=True)
+    app, in_memory_store, config=Config(include_in_openapi=True)
 )
 
 

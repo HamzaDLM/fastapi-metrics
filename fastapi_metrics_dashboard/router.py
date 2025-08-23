@@ -11,13 +11,12 @@ from fastapi_metrics_dashboard.utils import ts_to_readable, pin_auth_basic
 
 def get_metrics_router(store: MetricsStore, config: Config) -> APIRouter:
     metrics_router = APIRouter()
-    unprotected_router = APIRouter()
 
-    @unprotected_router.get(
+    @metrics_router.get(
         "/config-b887e852-bd12-41f2-b057-1bd31eb5443e", include_in_schema=True
     )
     async def get_config():
-        return {"pin_required": bool(config.ui_pin)}
+        return {}
 
     # config.custom_path requires check
     conditionally_protected_router = APIRouter(

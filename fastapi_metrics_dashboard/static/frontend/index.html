@@ -48,30 +48,7 @@
 
 <body style="background-color: black;">
     <div id="app">
-        <div v-if="requiresAuthed" class="w-screen h-screen bg-dark-950 z-50 flex items-center justify-center">
-            <div class="flex flex-col items-center space-y-4">
-                <p class="text-sm text-zinc-400">Enter your PIN
-                <div class="flex items-center space-x-2">
-                    <input type="password" maxlength="1"
-                        class="w-10 h-10 bg-transparent text-center placeholder:text-zinc-400 text-zinc-700 text-lg border border-zinc-400 rounded-md transition duration-300 ease focus:outline-none focus:border-zinc-200 hover:border-zinc-300 shadow-sm focus:shadow"
-                        oninput="handleChange(this, 0)" onkeydown="handleBackspace(event, 0)" />
-                    <input type="password" maxlength="1"
-                        class="w-10 h-10 bg-transparent text-center placeholder:text-zinc-400 text-zinc-700 text-lg border border-zinc-400 rounded-md transition duration-300 ease focus:outline-none focus:border-zinc-200 hover:border-zinc-300 shadow-sm focus:shadow"
-                        oninput="handleChange(this, 1)" onkeydown="handleBackspace(event, 1)" />
-                    <input type="password" maxlength="1"
-                        class="w-10 h-10 bg-transparent text-center placeholder:text-zinc-400 text-zinc-700 text-lg border border-zinc-400 rounded-md transition duration-300 ease focus:outline-none focus:border-zinc-200 hover:border-zinc-300 shadow-sm focus:shadow"
-                        oninput="handleChange(this, 2)" onkeydown="handleBackspace(event, 2)" />
-                    <input type="password" maxlength="1"
-                        class="w-10 h-10 bg-transparent text-center placeholder:text-zinc-400 text-zinc-700 text-lg border border-zinc-400 rounded-md transition duration-300 ease focus:outline-none focus:border-zinc-200 hover:border-zinc-300 shadow-sm focus:shadow"
-                        oninput="handleChange(this, 5)" onkeydown="handleBackspace(event, 5)" />
-                </div>
-                <!-- 
-                <p class="text-xs text-zinc-400 mt-4">
-                    Did not receive the code? <span class="font-bold cursor-pointer">Resend</span>
-                </p> -->
-            </div>
-        </div>
-        <div v-else class="font-mono text-xs text-white bg-black">
+        <div class="font-mono text-xs text-white bg-black">
             <!-- topbar -->
             <div
                 class="flex border-t-4 fixed border-[#10B981]/80 bg-black/30 backdrop-blur-lg z-40 justify-between w-full items-center px-4 py-4">
