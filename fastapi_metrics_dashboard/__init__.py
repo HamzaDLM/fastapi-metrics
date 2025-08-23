@@ -6,36 +6,29 @@ from typing import ClassVar
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
-from fastapi_metrics_dashboard.middleware import MetricsMiddleware
-from fastapi_metrics_dashboard.router import metrics_router
-from fastapi_metrics_dashboard.store import get_metrics_store
+from fastapi_metrics_dashboard.backends.base import MetricsStore
 from fastapi_metrics_dashboard.backends.in_memory import InMemoryMetricsStore
-from fastapi_metrics_dashboard.backends.redis import RedisMetricsStore
-from fastapi_metrics_dashboard.backends.sqlite import SQLiteMetricsStore
+from fastapi_metrics_dashboard.logger import logger
+from fastapi_metrics_dashboard.middleware import MetricsMiddleware
+from fastapi_metrics_dashboard.router import get_metrics_router
+from fastapi_metrics_dashboard.config import Config
 
-__all__ = ["MetricsMiddleware", "metrics_router"]
-
-# ok talking about my library fastapi-metrics-dashboard, lets refactor things, for the moment I did all the logic in in_memory.py, but I wanna move shared logic into base.py and then do specific implementations and appropriate bucket sizes/retention time per memory type in_memory/redis/sqlite
+# __all__ = ["MetricsMiddleware", "metrics_router"]
 
 
 class FastAPIMetricsDashboard:
     _initialized_apps: ClassVar[set[int]] = set()
-    _tasks: ClassVar[dict[int, asyncio.Task]] = {}
+    _tasks: ClassVar[dict[int, list[asyncio.Task]]] = {}
     _sys_metrics_sampling_interval: ClassVar[int] = 5  # seconds
-    _enable_dashboard_ui: ClassVar[bool] = True
-    _dashboard_ui_path: ClassVar[str] = "/metrics"
     _cleanup_expired_rate: ClassVar[int] = 60 * 60  # seconds
-    _routes_ignored: ClassVar[list[str]] = []
 
     @classmethod
     def init(
         cls,
         app: FastAPI,
-        store: InMemoryMetricsStore | RedisMetricsStore | SQLiteMetricsStore,
-        config: dict,
+        store: MetricsStore,
+        config: Config | None = None,
     ) -> None:
-        print("store:", type(store))
-        print("config:", config)
         if id(app) in cls._initialized_apps:
             return
 
@@ -43,6 +36,9 @@ class FastAPIMetricsDashboard:
             raise RuntimeError(
                 "fastapi app instance must be created before calling FastAPIMetricsDashboard.init(app)"
             )
+
+        cls.config = config or Config()
+        cls.store = store or InMemoryMetricsStore()
 
         cls._setup_lifepan(app)
         cls._register_routes(app)
@@ -55,36 +51,48 @@ class FastAPIMetricsDashboard:
 
         @asynccontextmanager
         async def injected_lifespan(app: FastAPI):
-            cls._tasks[id(app)] = asyncio.create_task(cls._collect_sys_metrics_loop())
-            cls._tasks[id(app)] = asyncio.create_task(cls._cleanup())
+            app_id = id(app)
+            tasks = []
+            tasks.append(asyncio.create_task(cls._collect_sys_metrics_loop()))
+            tasks.append(asyncio.create_task(cls._cleanup()))
+            cls._tasks[app_id] = tasks
 
-            if original_lifespan:
-                async with original_lifespan(app):
-                    # Startup
-                    yield
-                    # Shutdown
-            else:
-                yield
-
-            task = cls._tasks.pop(id(app), None)
-
-            if task:
-                task.cancel()
+            logger.debug(f"MAIN: Starting lifespan for app {app_id}")
 
             try:
-                await cls._tasks[id(app)]
-            except asyncio.CancelledError:
-                pass
+                if original_lifespan:
+                    async with original_lifespan(app):
+                        logger.debug("MAIN: App is running with original lifespan...")
+                        yield
+                        logger.debug("MAIN: Original lifespan shutting down...")
+                else:
+                    logger.debug("MAIN: App is running...")
+                    yield
+                    logger.debug("MAIN: App shutting down...")
+            finally:
+                logger.debug(f"MAIN: Cleaning up lifespan for app {app_id}")
+                for task in cls._tasks.pop(app_id, []):
+                    logger.debug(f"MAIN: Cancelling task: {task.get_name()}")
+                    task.cancel()
+                    try:
+                        await task
+                    except asyncio.CancelledError:
+                        logger.debug("MAIN: Task cancelled successfully")
+                        pass
+                logger.debug(f"MAIN: Cleaned up tasks for app {app_id}")
 
         app.router.lifespan_context = injected_lifespan
 
     @classmethod
     def _register_routes(cls, app: FastAPI):
-        app.add_middleware(MetricsMiddleware)
-        app.include_router(metrics_router, tags=["fastapi dashboard metrics"])
-        if cls._enable_dashboard_ui:
+        app.add_middleware(MetricsMiddleware, store=cls.store, config=cls.config)
+        app.include_router(
+            get_metrics_router(cls.store, cls.config),
+            tags=["fastapi dashboard metrics"],
+        )
+        if cls.config.enable_dashboard_ui:
             app.mount(
-                cls._dashboard_ui_path,
+                cls.config.custom_path,
                 StaticFiles(
                     directory=os.path.join(
                         os.path.dirname(__file__), "static", "frontend"
@@ -97,12 +105,11 @@ class FastAPIMetricsDashboard:
     @classmethod
     async def _collect_sys_metrics_loop(cls):
         while True:
-            store = get_metrics_store()
-            await store.record_system_metrics()
+            await cls.store.record_system_metrics()
             await asyncio.sleep(cls._sys_metrics_sampling_interval)
 
     @classmethod
     async def _cleanup(cls):
         while True:
-            get_metrics_store()._cleanup_expired_ttl()
+            cls.store._cleanup_expired_ttl()
             await asyncio.sleep(cls._cleanup_expired_rate)

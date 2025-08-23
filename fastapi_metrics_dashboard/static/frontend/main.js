@@ -2,6 +2,36 @@ const { createApp, onMounted, onUnmounted, computed, ref } = Vue;
 
 createApp({
     setup() {
+        // PIN
+        const requiresAuthed = ref(false)
+        const pinIsCorrect = ref(false)
+
+        function handleChange(input, index) {
+            const value = input.value.replace(/[^0-9]/g, '')
+            input.value = value
+            if (value && index < inputs.length - 1) {
+                inputs[index + 1].focus(); // Move to the next input
+            }
+        }
+
+        function handleBackspace(event, index) {
+            if (event.key === 'Backspace' && !event.currentTarget.value && index > 0) {
+                inputs[index - 1].focus(); // Move to the previous input
+            }
+        }
+
+        // getting config from backend
+        function getConfig() {
+            const response = { authRequired: true }
+            if 
+        }
+
+        function tryPIN() {
+            const response = { correct: false }
+
+
+        }
+
         let fetchInterval;
 
         const darkMode = ref(true)
@@ -1058,6 +1088,8 @@ createApp({
         })
 
         return {
+            requiresAuthed,
+
             toggleDarkMode,
             darkMode,
 

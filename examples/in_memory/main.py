@@ -4,8 +4,9 @@ import time
 import uvicorn
 from fastapi import FastAPI
 
-from fastapi_metrics_dashboard import FastAPIMetricsDashboard
+from fastapi_metrics_dashboard import FastAPIMetricsDashboard, Config
 from fastapi_metrics_dashboard.decorator import exclude_from_metrics
+
 from fastapi_metrics_dashboard.backends.in_memory import InMemoryMetricsStore
 
 # from fastapi_metrics_dashboard.backends.redis import RedisMetricsStore
@@ -32,7 +33,7 @@ in_memory_store = InMemoryMetricsStore()
 # async sqlite client
 
 
-FastAPIMetricsDashboard.init(app, in_memory_store, config={})
+FastAPIMetricsDashboard.init(app, in_memory_store, config=Config(ui_pin=1997))
 
 
 @app.get("/")
@@ -59,4 +60,4 @@ def sensitive():
 
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", reload=True, log_level="debug")
+    uvicorn.run("main:app", reload=False, log_level="debug")
