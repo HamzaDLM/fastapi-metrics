@@ -196,7 +196,7 @@ createApp({
                 min: 0,
                 max: 100,
                 labels: {
-                    formatter: (value) => Math.round(value),
+                    formatter: (value) => value,
                     style: {
                         colors: "#595959"
                     }
@@ -281,7 +281,7 @@ createApp({
                 min: 0,
                 max: 100,
                 labels: {
-                    formatter: (value) => Math.round(value),
+                    formatter: (value) => value,
                     style: {
                         colors: "#595959"
                     }
@@ -361,7 +361,7 @@ createApp({
             },
             yaxis: {
                 labels: {
-                    formatter: (val) => Math.round(val),
+                    formatter: (val) => val,
                     style: {
                         colors: "#595959"
                     }
@@ -1003,6 +1003,7 @@ createApp({
                 if (!response.ok) {
                     console.log("problem reseting store")
                 }
+                resetModalShow.value = !resetModalShow.value
                 destroyCharts()
                 renderCharts()
                 getData()

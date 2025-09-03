@@ -1,5 +1,7 @@
 NOTES.md
 .venv
+.vscode
+metrics.db
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

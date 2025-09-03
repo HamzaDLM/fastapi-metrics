@@ -9,10 +9,18 @@ from fastapi_metrics_dashboard.decorator import exclude_from_metrics
 
 from fastapi_metrics_dashboard.backends.in_memory import InMemoryMetricsStore
 
-# from fastapi_metrics_dashboard.backends.redis import RedisMetricsStore
+from fastapi_metrics_dashboard.backends.redis import (
+    AsyncRedisMetricsStore,
+    RedisMetricsStore,
+)
+
+from fastapi_metrics_dashboard.backends.sqlite import SQLiteMetricsStore
+
 # from fastapi_metrics_dashboard.backends.sqlite import SQLiteMetricsStore
-# import redis
-# import redis.asyncio as async_redis
+import redis as sync_redis
+
+import redis.asyncio as async_redis
+
 # import sqlite3
 
 app = FastAPI()
@@ -20,12 +28,11 @@ app = FastAPI()
 in_memory_store = InMemoryMetricsStore()
 
 # sync redis client
-# redis_client = redis.Redis()
-# redis_store = RedisMetricsStore(redis_client)
+redis_client = sync_redis.Redis(host="localhost", port=6379, db=0)
 
 # # async redis client
-# redis_client = async_redis.Redis()
-# redis_store = RedisMetricsStore(redis_client)
+async_redis_client = async_redis.Redis()
+# async_redis_store = RedisMetricsStore(redis_client)
 
 # # sync sqlite client
 # sqlite_client = sqlite3.connect("tutorial.db")
@@ -34,7 +41,12 @@ in_memory_store = InMemoryMetricsStore()
 
 
 FastAPIMetricsDashboard.init(
-    app, in_memory_store, config=Config(include_in_openapi=True)
+    app,
+    # in_memory_store,
+    # RedisMetricsStore(redis_client),
+    # AsyncRedisMetricsStore(async_redis_client),
+    SQLiteMetricsStore(),
+    config=Config(include_in_openapi=True, ignored_routes=["/metrics/main.js"]),
 )
 
 
