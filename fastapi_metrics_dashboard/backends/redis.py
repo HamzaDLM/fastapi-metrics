@@ -5,11 +5,8 @@ from collections import defaultdict
 from redis import Redis as SyncRedis
 from redis.asyncio import Redis as AsyncRedis
 
-from fastapi_metrics_dashboard.backends.base import (
-    AsyncMetricsStore,
-    Bucket,
-    MetricsStore,
-)
+from fastapi_metrics_dashboard.backends import Bucket
+from fastapi_metrics_dashboard.backends.base import AsyncMetricsStore, MetricsStore
 
 
 class RedisMetricsStore(MetricsStore):
@@ -27,9 +24,7 @@ class RedisMetricsStore(MetricsStore):
     def __init__(self, client: SyncRedis, ttl_seconds: int | None = None):
         super().__init__()
         if client is not None and not isinstance(client, SyncRedis):
-            raise TypeError(
-                f"Expected redis.client.Redis client, got {type(client).__name__}"
-            )
+            raise TypeError(f"Expected redis.client.Redis client, got {type(client).__name__}")
         self.ttl_seconds = ttl_seconds
         self.client = client
 
@@ -41,9 +36,7 @@ class RedisMetricsStore(MetricsStore):
         """List of supported bucket sizes (in seconds)."""
         return [5, 30, 300, 900]  # 5s, 30s, 5min, 15min
 
-    async def _flush_system_metric_to_bucket(
-        self, key: str, bucket_size: int, data: dict
-    ) -> None:
+    async def _flush_system_metric_to_bucket(self, key: str, bucket_size: int, data: dict) -> None:
         """
         Flush system metric data into a specific bucket.
 
@@ -63,9 +56,7 @@ class RedisMetricsStore(MetricsStore):
         if self.ttl_seconds:
             self.client.expire(base_key, self.ttl_seconds)
 
-    def record_request_metrics(
-        self, path: str, duration: float, status_code: int, method: str
-    ) -> None:
+    def record_request_metrics(self, path: str, duration: float, status_code: int, method: str) -> None:
         """
         Record request-level metrics into all bucket resolutions.
 
@@ -130,9 +121,7 @@ class RedisMetricsStore(MetricsStore):
             if self.ttl_seconds:
                 self.client.expire(base_key, self.ttl_seconds)
 
-    def get_request_metrics_series(
-        self, bucket_size: int, ts_from: int, ts_to: int
-    ) -> dict[int, dict[str, dict]]:
+    def get_request_metrics_series(self, bucket_size: int, ts_from: int, ts_to: int) -> dict[int, dict[str, dict]]:
         """
         Retrieve request buckets within a specific time range.
 
@@ -168,9 +157,7 @@ class RedisMetricsStore(MetricsStore):
 
         return result
 
-    def get_system_metrics_series(
-        self, bucket_size: int, ts_from: int, ts_to: int
-    ) -> dict:
+    def get_system_metrics_series(self, bucket_size: int, ts_from: int, ts_to: int) -> dict:
         """
         Retrieve system metrics series for a given time range.
 
@@ -236,9 +223,7 @@ class AsyncRedisMetricsStore(AsyncMetricsStore):
     def __init__(self, client: AsyncRedis, ttl_seconds: int | None = None):
         super().__init__()
         if client is not None and not isinstance(client, AsyncRedis):
-            raise TypeError(
-                f"Expected redis.asyncio.client.Redis client, got {type(client).__name__}"
-            )
+            raise TypeError(f"Expected redis.asyncio.client.Redis client, got {type(client).__name__}")
         self.ttl_seconds = ttl_seconds
         self.client = client
 
@@ -251,9 +236,7 @@ class AsyncRedisMetricsStore(AsyncMetricsStore):
     def bucket_sizes(self) -> list[int]:
         return [5, 30, 300, 900]  # 5s, 30s, 5min, 15min
 
-    async def _flush_system_metric_to_bucket(
-        self, key: str, bucket_size: int, data: dict
-    ) -> None:
+    async def _flush_system_metric_to_bucket(self, key: str, bucket_size: int, data: dict) -> None:
         """
         Flush system metric data into a specific bucket.
 
@@ -273,9 +256,7 @@ class AsyncRedisMetricsStore(AsyncMetricsStore):
         if self.ttl_seconds:
             self.client.expire(base_key, self.ttl_seconds)
 
-    async def record_request_metrics(
-        self, path: str, duration: float, status_code: int, method: str
-    ) -> None:
+    async def record_request_metrics(self, path: str, duration: float, status_code: int, method: str) -> None:
         """
         Record request-level metrics into all bucket resolutions.
 
@@ -370,9 +351,7 @@ class AsyncRedisMetricsStore(AsyncMetricsStore):
 
         return result
 
-    async def get_system_metrics_series(
-        self, bucket_size: int, ts_from: int, ts_to: int
-    ) -> dict:
+    async def get_system_metrics_series(self, bucket_size: int, ts_from: int, ts_to: int) -> dict:
         """
         Retrieve system metrics series for a given time range.
 

@@ -7,7 +7,6 @@ from typing import Any, DefaultDict
 
 import psutil
 
-from fastapi_metrics_dashboard.backends import Bucket
 from fastapi_metrics_dashboard.logger import logger
 from fastapi_metrics_dashboard.utils import StatAggregator
 
@@ -348,6 +347,9 @@ class AsyncMetricsStore(_BaseStore):
     ) -> dict: ...
 
     @abstractmethod
+    async def _cleanup_expired_ttl(self) -> None: ...
+
+    @abstractmethod
     async def reset(self) -> None: ...
 
     async def _get_status_code_series(
@@ -563,6 +565,3 @@ class AsyncMetricsStore(_BaseStore):
                 "bucket_size_secs": bucket_size,
             },
         }
-
-    @abstractmethod
-    async def _cleanup_expired_ttl(self) -> None: ...

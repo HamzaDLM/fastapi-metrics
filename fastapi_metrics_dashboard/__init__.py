@@ -26,7 +26,9 @@ from fastapi_metrics_dashboard.router import (
 class FastAPIMetricsDashboard:
     _initialized_apps: ClassVar[set[int]] = set()
     _tasks: ClassVar[dict[int, list[asyncio.Task]]] = {}
-    _sys_metrics_sampling_interval: ClassVar[int] = 5  # seconds
+    _sys_metrics_sampling_interval: ClassVar[int] = (
+        5  # TODO probably shouldn't be defined here since it should be equivalent to the smallest time bucket
+    )
     _cleanup_expired_rate: ClassVar[int] = 60 * 60  # seconds
 
     @classmethod

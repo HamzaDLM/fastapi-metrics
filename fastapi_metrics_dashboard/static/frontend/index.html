@@ -58,7 +58,7 @@
                         viewBox="0 0 24 24"><!-- Icon from Material Symbols by Google - https://github.com/google/material-design-icons/blob/master/LICENSE -->
                         <path fill="currentColor" d="M3.5 18.5L2 17l7.5-7.5l4 4l7.1-8L22 6.9l-8.5 9.6l-4-4z" />
                     </svg>
-                    <p class="text-lg lg:text-2xl font-sans text-[#10B981]">FastAPI Metrics Dashboard</p>
+						<p class="text-lg lg:text-2xl font-sans text-[#10B981]">{{ appTitle }}</p>
                 </h1>
                 <!-- filters and status bar -->
                 <div class="w-min text-xs whitespace-nowrap flex gap-2 pr-2">
@@ -99,7 +99,7 @@
                                 d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6c0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0 0 20 12c0-4.42-3.58-8-8-8m0 14c-3.31 0-6-2.69-6-6c0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 0 0 4 12c0 4.42 3.58 8 8 8v3l4-4l-4-4z" />
                         </svg>
                     </button>
-                    <button @click="toggleDarkMode()" class="tooling-button">
+                    <button v-if="false" @click="toggleDarkMode()" class="tooling-button">
                         <svg v-if="darkMode" xmlns="http://www.w3.org/2000/svg" class="text-zinc-400 w-4 h-4"
                             viewBox="0 0 24 24"><!-- Icon from Material Line Icons by Vjacheslav Trushkin - https://github.com/cyberalien/line-md/blob/master/license.txt -->
                             <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
@@ -504,7 +504,7 @@
                                     <p class="font-bold">{{ formatTime(val, true) }}</p>
                                 </div>
                                 <div class="w-full rounded-full h-2 mb-4 bg-zinc-700">
-                                    <div class="h-2 rounded-full bg-zinc-300"
+                                    <div class="h-2 rounded-full bg-yellow-400"
                                         :style="{ width: Math.round((val*100)/Math.max(...Object.values(top_slowest_routes)))  + '%' }">
                                     </div>
                                 </div>
@@ -553,7 +553,7 @@
                                     </div>
                                     <div class="w-full rounded-full h-2 mb-4 bg-zinc-700">
                                         <div v-if="Math.max(...Object.values(top_error_prone_routes)) > 0"
-                                            class="h-2 rounded-full bg-zinc-300"
+                                            class="h-2 rounded-full bg-red-400"
                                             :style="{ width: Math.round((val*100)/Math.max(...Object.values(top_error_prone_routes)))  + '%' }">
                                         </div>
                                     </div>

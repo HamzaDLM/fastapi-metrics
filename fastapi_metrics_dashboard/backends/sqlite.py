@@ -3,9 +3,7 @@ import sqlite3
 import time
 from collections import defaultdict
 
-from fastapi_metrics_dashboard.backends.base import (
-    MetricsStore,
-)
+from fastapi_metrics_dashboard.backends.base import MetricsStore
 
 
 class SQLiteMetricsStore(MetricsStore):
@@ -59,7 +57,7 @@ class SQLiteMetricsStore(MetricsStore):
         Record request-level metrics into all bucket resolutions.
 
         Format:
-            TODO!
+            bucket_size | bucket_timestamp | path | data
 
         Args:
             path: The request path (route).

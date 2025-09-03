@@ -2,6 +2,8 @@ const { createApp, onMounted, onUnmounted, computed, ref } = Vue;
 
 createApp({
     setup() {
+        const appTitle = ref("FastAPI Metrics Dashboard")
+
         let fetchInterval;
 
         const darkMode = ref(true)
@@ -55,10 +57,6 @@ createApp({
 
         const settingsDropdown = ref(false)
         const errorRefreshing = ref(false)
-
-        // TODO: put in localstorage (time range ..etc)
-        const preferences = ref({
-        })
 
         const httpStatusColorCode = {
             "1XX": "#64748b",
@@ -881,11 +879,47 @@ createApp({
                         data: formatForChart(jsonResponse.system_metrics.cpu_percent, 'max')
                     }
                 ])
+				cpu_chart.value.updateOptions({
+					xaxis: {
+						type: "datetime",
+						axisBorder: {
+							show: false,
+						},
+						axisTicks: {
+							show: false,
+						},
+						labels: {
+							formatter: (value) => timeLabelformatter(value),
+							style: {
+								colors: "#595959"
+							}
+						},
+						min: Date.now() - filterTimeRange.value,
+					},
+				})
                 memory_chart.value.updateSeries([{
                     name: "avg",
                     color: "#10B981",
                     data: formatForChart(jsonResponse.system_metrics.memory_percent, 'avg')
                 }])
+				memory_chart.value.updateOptions({
+					xaxis: {
+						type: "datetime",
+						axisBorder: {
+							show: false,
+						},
+						axisTicks: {
+							show: false,
+						},
+						labels: {
+							formatter: (value) => timeLabelformatter(value),
+							style: {
+								colors: "#595959"
+							}
+						},
+						min: Date.now() - filterTimeRange.value,
+					},
+				})
                 memory_used_and_available_chart.value.updateSeries([
                     {
                         name: "Memory used (MiB)",
@@ -898,6 +932,24 @@ createApp({
                         data: formatForChart(jsonResponse.system_metrics.memory_available_mb, 'avg')
                     }
                 ])
+				memory_used_and_available_chart.value.updateOptions({
+					xaxis: {
+						type: "datetime",
+						axisBorder: {
+							show: false,
+						},
+						axisTicks: {
+							show: false,
+						},
+						labels: {
+							formatter: (value) => timeLabelformatter(value),
+							style: {
+								colors: "#595959"
+							}
+						},
+						min: Date.now() - filterTimeRange.value,
+					},
+				})
                 network_io_chart.value.updateSeries([
                     {
                         name: "Network bytes sent (Mbps)",
@@ -910,7 +962,24 @@ createApp({
                         data: formatForChart(jsonResponse.system_metrics.network_io_recv, 'avg')
                     }
                 ])
-
+				network_io_chart.value.updateOptions({
+					xaxis: {
+						type: "datetime",
+						axisBorder: {
+							show: false,
+						},
+						axisTicks: {
+							show: false,
+						},
+						labels: {
+							formatter: (value) => timeLabelformatter(value),
+							style: {
+								colors: "#595959"
+							}
+						},
+						min: Date.now() - filterTimeRange.value,
+					},
+				})
                 read_write_per_minute_chart.value.updateSeries(
                     jsonResponse.read_write.map(item => {
                         return {
@@ -919,6 +988,24 @@ createApp({
                         }
                     })
                 )
+				read_write_per_minute_chart.value.updateOptions({
+					xaxis: {
+						type: "datetime",
+						axisBorder: {
+							show: false,
+						},
+						axisTicks: {
+							show: false,
+						},
+						labels: {
+							formatter: (value) => timeLabelformatter(value),
+							style: {
+								colors: "#595959"
+							}
+						},
+						min: Date.now() - filterTimeRange.value,
+					},
+				})
                 latency_per_route_chart.value.updateSeries(
                     jsonResponse.latencies.map(item => {
                         return {
@@ -927,6 +1014,24 @@ createApp({
                         }
                     })
                 )
+				latency_per_route_chart.value.updateOptions({
+					xaxis: {
+						type: "datetime",
+						axisBorder: {
+							show: false,
+						},
+						axisTicks: {
+							show: false,
+						},
+						labels: {
+							formatter: (value) => timeLabelformatter(value),
+							style: {
+								colors: "#595959"
+							}
+						},
+						min: Date.now() - filterTimeRange.value,
+					},
+				})
                 rpm_chart.value.updateSeries(
                     jsonResponse.status_code.map(item => {
                         return {
@@ -936,7 +1041,24 @@ createApp({
                         }
                     })
                 )
-
+				rpm_chart.value.updateOptions({
+					xaxis: {
+						type: "datetime",
+						axisBorder: {
+							show: false,
+						},
+						axisTicks: {
+							show: false,
+						},
+						labels: {
+							formatter: (value) => timeLabelformatter(value),
+							style: {
+								colors: "#595959"
+							}
+						},
+						min: Date.now() - filterTimeRange.value,
+					},
+				})
                 error_requests_chart.value.updateSeries([
                     {
                         name: "4XX",
@@ -949,6 +1071,24 @@ createApp({
                         data: jsonResponse.status_code.find(item => item.name == "5XX")?.data.map(point => [point[0] * 1000, point[1]])
                     }
                 ])
+				error_requests_chart.value.updateOptions({
+					xaxis: {
+						type: "datetime",
+						axisBorder: {
+							show: false,
+						},
+						axisTicks: {
+							show: false,
+						},
+						labels: {
+							formatter: (value) => timeLabelformatter(value),
+							style: {
+								colors: "#595959"
+							}
+						},
+						min: Date.now() - filterTimeRange.value,
+					},
+				})
 
                 Object.entries(jsonResponse.requests_per_method).forEach(([key, val]) => {
                     requests_per_method_count[key] = val
@@ -1069,6 +1209,7 @@ createApp({
         })
 
         return {
+			appTitle,
             toggleDarkMode,
             darkMode,
 
