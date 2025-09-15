@@ -3,10 +3,10 @@ import time
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 
-from fastapi_metrics_dashboard.config import Config
-from fastapi_metrics_dashboard.backends.base import MetricsStore, AsyncMetricsStore
-from fastapi_metrics_dashboard.logger import logger
-from fastapi_metrics_dashboard.utils import ts_to_readable
+from fastapi_metrics.config import Config
+from fastapi_metrics.backends.base import MetricsStore, AsyncMetricsStore
+from fastapi_metrics.logger import logger
+from fastapi_metrics.utils import timestamp_to_readable
 
 
 def get_metrics_router(store: MetricsStore, config: Config) -> APIRouter:
@@ -26,15 +26,17 @@ def get_metrics_router(store: MetricsStore, config: Config) -> APIRouter:
         status_code=200,
         include_in_schema=config.include_in_openapi,
     )
-    async def get_metrics(ts_from: int, ts_to: int | None = None):
+    async def get_metrics(
+        ts_from: int, ts_to: int | None = None, bucket_size: int | None = None
+    ):
         logger.debug(
-            f"ROUTER: get metrics {ts_to_readable(ts_from)} to {ts_to_readable(ts_to)}"
+            f"ROUTER: get metrics {timestamp_to_readable(ts_from)} to {timestamp_to_readable(ts_to)}"
         )
 
         if ts_to is None:
             ts_to = int(time.time())
 
-        data = store.get_metrics(ts_from=ts_from, ts_to=ts_to)
+        data = store.get_metrics(ts_from=ts_from, ts_to=ts_to, bucket_size=bucket_size)
         return JSONResponse(content=data)
 
     @prefixed_router.get(
@@ -47,7 +49,7 @@ def get_metrics_router(store: MetricsStore, config: Config) -> APIRouter:
         ts_to: int | None = None,
     ):
         logger.debug(
-            f"ROUTER: get overview table, from:{ts_to_readable(ts_from)} to:{ts_to_readable(ts_to)}"
+            f"ROUTER: get overview table, from:{timestamp_to_readable(ts_from)} to:{timestamp_to_readable(ts_to)}"
         )
 
         if ts_to is None:
@@ -88,15 +90,19 @@ def get_async_metrics_router(store: AsyncMetricsStore, config: Config) -> APIRou
         status_code=200,
         include_in_schema=config.include_in_openapi,
     )
-    async def get_metrics(ts_from: int, ts_to: int | None = None):
+    async def get_metrics(
+        ts_from: int, ts_to: int | None = None, bucket_size: int | None = None
+    ):
         logger.debug(
-            f"ROUTER: get metrics {ts_to_readable(ts_from)} to {ts_to_readable(ts_to)}"
+            f"ROUTER: get metrics {timestamp_to_readable(ts_from)} to {timestamp_to_readable(ts_to)}"
         )
 
         if ts_to is None:
             ts_to = int(time.time())
 
-        data = await store.get_metrics(ts_from=ts_from, ts_to=ts_to)
+        data = await store.get_metrics(
+            ts_from=ts_from, ts_to=ts_to, bucket_size=bucket_size
+        )
         return JSONResponse(content=data)
 
     @prefixed_router.get(
@@ -109,7 +115,7 @@ def get_async_metrics_router(store: AsyncMetricsStore, config: Config) -> APIRou
         ts_to: int | None = None,
     ):
         logger.debug(
-            f"ROUTER: get overview table, from:{ts_to_readable(ts_from)} to:{ts_to_readable(ts_to)}"
+            f"ROUTER: get overview table, from:{timestamp_to_readable(ts_from)} to:{timestamp_to_readable(ts_to)}"
         )
 
         if ts_to is None:

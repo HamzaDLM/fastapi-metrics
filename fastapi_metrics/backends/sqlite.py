@@ -1,9 +1,19 @@
 import json
+
+try:
+    import sqlite3
+except ImportError as e:
+    raise ImportError(
+        "SQLite backend requires 'sqlite3', which is not available in your Python build."
+        "Reinstall Python with SQLite support."
+    ) from e
+
 import sqlite3
+
 import time
 from collections import defaultdict
 
-from fastapi_metrics_dashboard.backends.base import MetricsStore
+from fastapi_metrics.backends.base import MetricsStore
 
 
 class SQLiteMetricsStore(MetricsStore):
@@ -48,7 +58,7 @@ class SQLiteMetricsStore(MetricsStore):
     @property
     def bucket_sizes(self) -> list[int]:
         """List of supported bucket sizes (in seconds)."""
-        return [5, 30, 300, 900]
+        return [60, 300, 900, 1800]
 
     def record_request_metrics(
         self, path: str, duration: float, status_code: int, method: str

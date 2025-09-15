@@ -132,22 +132,17 @@ class StatAggregator:
         self.last_flush = flush_timestamp
 
 
-def set_ui_pin(pin: str) -> str:
-    if not pin.isdigit() or len(pin) != 4:
-        raise ValueError("PIN must be exactly 4 digits")
-    return pin
-
-
-def dd_to_dict(d: Any) -> Any:
-    """recursively convert defaultdict to dict"""
+def defaultdict_to_dict(d: Any) -> Any:
+    """Recursively convert defaultdict to dict."""
     if isinstance(d, defaultdict):
-        d = {k: dd_to_dict(v) for k, v in d.items()}
+        d = {k: defaultdict_to_dict(v) for k, v in d.items()}
     elif isinstance(d, dict):
-        d = {k: dd_to_dict(v) for k, v in d.items()}
+        d = {k: defaultdict_to_dict(v) for k, v in d.items()}
     return d
 
 
-def ts_to_readable(ts: Any) -> str:
+def timestamp_to_readable(ts: Any) -> str:
+    """Convert timestamp to readable form time."""
     if ts and type(ts) is int:
-        return datetime.fromtimestamp(ts).strftime("%Y-%m-%d %H:%M")
+        return datetime.fromtimestamp(ts).strftime("%Y-%m-%d %H:%M:%S")
     return str(ts)

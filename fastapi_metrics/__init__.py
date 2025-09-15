@@ -7,28 +7,31 @@ from typing import ClassVar, cast
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
-from fastapi_metrics_dashboard.backends.base import AsyncMetricsStore, MetricsStore
-from fastapi_metrics_dashboard.backends.in_memory import InMemoryMetricsStore
-from fastapi_metrics_dashboard.config import Config
-from fastapi_metrics_dashboard.logger import logger
-from fastapi_metrics_dashboard.middleware import (
+from fastapi_metrics.backends.base import AsyncMetricsStore, MetricsStore
+from fastapi_metrics.backends.in_memory import InMemoryMetricsStore
+from fastapi_metrics.config import Config
+from fastapi_metrics.logger import logger
+from fastapi_metrics.middleware import (
     AsyncMetricsMiddleware,
     MetricsMiddleware,
 )
-from fastapi_metrics_dashboard.router import (
+from fastapi_metrics.router import (
     get_async_metrics_router,
     get_metrics_router,
 )
 
-# __all__ = ["MetricsMiddleware", "metrics_router"]
+__all__ = [
+    "get_async_metrics_router",
+    "get_metrics_router",
+    "AsyncMetricsMiddleware",
+    "MetricsMiddleware",
+]
 
 
-class FastAPIMetricsDashboard:
+class FastAPIMetrics:
     _initialized_apps: ClassVar[set[int]] = set()
     _tasks: ClassVar[dict[int, list[asyncio.Task]]] = {}
-    _sys_metrics_sampling_interval: ClassVar[int] = (
-        5  # TODO probably shouldn't be defined here since it should be equivalent to the smallest time bucket
-    )
+    _sys_metrics_sampling_interval: ClassVar[int] = 5
     _cleanup_expired_rate: ClassVar[int] = 60 * 60  # seconds
 
     @classmethod
@@ -43,7 +46,7 @@ class FastAPIMetricsDashboard:
 
         if not hasattr(app.router, "lifespan_context"):
             raise RuntimeError(
-                "fastapi app instance must be created before calling FastAPIMetricsDashboard.init(app)"
+                "fastapi app instance must be created before calling FastAPIMetrics.init(app)"
             )
 
         cls.config = config or Config()

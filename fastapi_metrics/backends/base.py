@@ -3,14 +3,43 @@ import os
 import statistics
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from typing import Any, DefaultDict
+from typing import Any, DefaultDict, Literal, TypedDict
 
 import psutil
 
-from fastapi_metrics_dashboard.logger import logger
-from fastapi_metrics_dashboard.utils import StatAggregator
+from fastapi_metrics.logger import logger
+from fastapi_metrics.utils import StatAggregator
 
 proc = psutil.Process(os.getpid())
+
+
+class SystemLogEntry(TypedDict):
+    timestamp: int
+    min: float
+    max: float
+    avg: float
+
+
+SystemMetricKey = Literal[
+    "cpu_percent",
+    "memory_percent",
+    "memory_used_mb",
+    "memory_available_mb",
+    "network_io_sent",
+    "network_io_recv",
+]
+
+StatusCodes = Literal["1XX", "2XX", "3XX", "4XX", "5XX"]
+HttpMethods = Literal["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTION"]
+
+
+class Bucket(TypedDict):
+    latencies: list[float]
+    count: int
+    errors: int
+    status_codes: DefaultDict[str, int]
+    methods: DefaultDict[str, int]
+    rw_count: DefaultDict[Literal["read", "write"], int]
 
 
 class _BaseStore(ABC):
@@ -30,10 +59,13 @@ class _BaseStore(ABC):
                     on_flush=self._create_flush_callback(metric, bucket_size),
                 )
                 for metric in [
+                    "system_wide_cpu_percent",
+                    "system_wide_memory_percent",
+                    "system_wide_memory_used_mb",
+                    "system_wide_memory_available_mb",
                     "cpu_percent",
                     "memory_percent",
                     "memory_used_mb",
-                    "memory_available_mb",
                     "network_io_sent",
                     "network_io_recv",
                 ]
@@ -82,17 +114,37 @@ class _BaseStore(ABC):
         logger.debug("STORE: recording system metrics")
         memory_info = proc.memory_info()
         memory_used_mb = memory_info.rss / 1024 / 1024
-        memory_available_mb = psutil.virtual_memory().available / 1024 / 1024
         memory_percent = (memory_info.rss / psutil.virtual_memory().total) * 100
         net_io = psutil.net_io_counters()
         cpu_percent = round(proc.cpu_percent(interval=None), 3)
 
+        system_wide_cpu_percent = round(psutil.cpu_percent(interval=None), 3)
+        system_wide_memory = psutil.virtual_memory()
+        system_wide_memory_used_mb = (
+            (system_wide_memory.total - system_wide_memory.available) / 1024 / 1024
+        )
+        system_wide_memory_available_mb = (
+            psutil.virtual_memory().available / 1024 / 1024
+        )
+        system_wide_memory_percent = system_wide_memory.percent
+
         async with self._lock:
             for aggregators in self._system_aggregators.values():
+                aggregators["system_wide_cpu_percent"].add_sample(
+                    system_wide_cpu_percent
+                )
+                aggregators["system_wide_memory_percent"].add_sample(
+                    system_wide_memory_percent
+                )
+                aggregators["system_wide_memory_used_mb"].add_sample(
+                    system_wide_memory_used_mb
+                )
+                aggregators["system_wide_memory_available_mb"].add_sample(
+                    system_wide_memory_available_mb
+                )
                 aggregators["cpu_percent"].add_sample(cpu_percent)
                 aggregators["memory_percent"].add_sample(memory_percent)
                 aggregators["memory_used_mb"].add_sample(memory_used_mb)
-                aggregators["memory_available_mb"].add_sample(memory_available_mb)
                 aggregators["network_io_sent"].add_sample(net_io.bytes_sent)
                 aggregators["network_io_recv"].add_sample(net_io.bytes_recv)
 
@@ -297,8 +349,10 @@ class MetricsStore(_BaseStore):
             "total": len(rows),
         }
 
-    def get_metrics(self, ts_from: int, ts_to: int) -> dict[str, Any]:
-        bucket_size = self._get_bucket_size(ts_to - ts_from)
+    def get_metrics(
+        self, ts_from: int, ts_to: int, bucket_size: int | None = None
+    ) -> dict[str, Any]:
+        bucket_size = bucket_size or self._get_bucket_size(ts_to - ts_from)
 
         return {
             "latencies": self._get_latency_series(bucket_size, ts_from, ts_to),
@@ -534,8 +588,10 @@ class AsyncMetricsStore(_BaseStore):
             "total": len(rows),
         }
 
-    async def get_metrics(self, ts_from: int, ts_to: int) -> dict[str, Any]:
-        bucket_size = self._get_bucket_size(ts_to - ts_from)
+    async def get_metrics(
+        self, ts_from: int, ts_to: int, bucket_size: int | None = None
+    ) -> dict[str, Any]:
+        bucket_size = bucket_size or self._get_bucket_size(ts_to - ts_from)
 
         return {
             "latencies": await self._get_latency_series(bucket_size, ts_from, ts_to),

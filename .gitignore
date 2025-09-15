@@ -2,6 +2,8 @@ NOTES.md
 .venv
 .vscode
 metrics.db
+sim.py
+playground.py
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

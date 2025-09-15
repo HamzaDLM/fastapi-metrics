@@ -2,8 +2,8 @@ import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 
-from fastapi_metrics_dashboard.middleware import MetricsMiddleware
-from fastapi_metrics_dashboard.backends.in_memory import InMemoryMetricsStore
+from fastapi_metrics.middleware import MetricsMiddleware
+from fastapi_metrics.backends.in_memory import InMemoryMetricsStore
 
 
 def create_test_app():

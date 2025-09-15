@@ -4,8 +4,8 @@ from starlette.requests import Request
 from starlette.responses import Response
 from starlette.types import ASGIApp
 
-from fastapi_metrics_dashboard.backends.base import MetricsStore, AsyncMetricsStore
-from fastapi_metrics_dashboard.config import Config
+from fastapi_metrics.backends.base import MetricsStore, AsyncMetricsStore
+from fastapi_metrics.config import Config
 
 
 class MetricsMiddleware(BaseHTTPMiddleware):

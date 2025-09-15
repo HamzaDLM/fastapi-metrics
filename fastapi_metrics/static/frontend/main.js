@@ -2,9 +2,10 @@ const { createApp, onMounted, onUnmounted, computed, ref } = Vue;
 
 createApp({
     setup() {
-        const appTitle = ref("FastAPI Metrics Dashboard")
+        const appTitle = ref("FastAPI Metrics")
 
         let fetchInterval;
+        const refreshing = ref(false)
 
         const darkMode = ref(true)
         const toggleDarkMode = () => darkMode.value = !darkMode.value
@@ -110,7 +111,8 @@ createApp({
         const current_cpu_usage = ref(0)
         const current_memory_usage = ref(0)
         const current_memory_used = ref(0)
-        const current_memory_available = ref(0)
+        const system_current_memory_available = ref(0)
+        const system_wide_memory_used_mb = ref(0)
         const current_transmit_bytes = ref(0)
         const current_received_bytes = ref(0)
 
@@ -237,11 +239,7 @@ createApp({
                 }
             },
             legend: {
-                position: "top",
-                horizontalAlign: "right",
-                floating: true,
-                offsetY: -25,
-                offsetX: -5,
+                show: false,
             },
             dataLabels: {
                 enabled: false,
@@ -340,7 +338,6 @@ createApp({
                     },
                 },
             },
-            colors: ["#10B981", "#085b3f"],
             xaxis: {
                 type: "datetime",
                 axisBorder: {
@@ -848,271 +845,30 @@ createApp({
             }
         }
 
-        async function getData() {
-            const tsFrom = Math.round((Date.now() - filterTimeRange.value) / 1000)
-            const url = `/metrics/json?ts_from=${tsFrom}`
-            try {
-                const response = await fetch(url)
-                if (!response.ok) {
-                    errorRefreshing.value = true
-                    console.log("problem getting data")
+        function updateXaxis(chart) {
+            chart.updateOptions({
+                xaxis: {
+                    type: "datetime",
+                    axisBorder: { show: false },
+                    axisTicks: { show: false },
+                    labels: {
+                        formatter: (value) => timeLabelformatter(value),
+                        style: { colors: "#595959" }
+                    },
+                    min: Date.now() - filterTimeRange.value,
+                    max: Date.now()
                 }
-                // timestamp seconds => milli for js
-                const formatForChart = (data, key) => { return data.map(point => [point.timestamp * 1000, point[key]]) }
-
-                const jsonResponse = await response.json()
-
-                cpu_chart.value.updateSeries([
-                    {
-                        name: "min",
-                        color: "#0d9568",
-                        data: formatForChart(jsonResponse.system_metrics.cpu_percent, 'min')
-                    },
-                    {
-                        name: "avg",
-                        color: "#10B981",
-                        data: formatForChart(jsonResponse.system_metrics.cpu_percent, 'avg')
-                    },
-                    {
-                        name: "max",
-                        color: "#13dd9a",
-                        data: formatForChart(jsonResponse.system_metrics.cpu_percent, 'max')
-                    }
-                ])
-				cpu_chart.value.updateOptions({
-					xaxis: {
-						type: "datetime",
-						axisBorder: {
-							show: false,
-						},
-						axisTicks: {
-							show: false,
-						},
-						labels: {
-							formatter: (value) => timeLabelformatter(value),
-							style: {
-								colors: "#595959"
-							}
-						},
-						min: Date.now() - filterTimeRange.value,
-					},
-				})
-                memory_chart.value.updateSeries([{
-                    name: "avg",
-                    color: "#10B981",
-                    data: formatForChart(jsonResponse.system_metrics.memory_percent, 'avg')
-                }])
-				memory_chart.value.updateOptions({
-					xaxis: {
-						type: "datetime",
-						axisBorder: {
-							show: false,
-						},
-						axisTicks: {
-							show: false,
-						},
-						labels: {
-							formatter: (value) => timeLabelformatter(value),
-							style: {
-								colors: "#595959"
-							}
-						},
-						min: Date.now() - filterTimeRange.value,
-					},
-				})
-                memory_used_and_available_chart.value.updateSeries([
-                    {
-                        name: "Memory used (MiB)",
-                        color: "#10B981",
-                        data: formatForChart(jsonResponse.system_metrics.memory_used_mb, 'avg')
-                    },
-                    {
-                        name: "Memory available (MiB)",
-                        color: "#085b3f",
-                        data: formatForChart(jsonResponse.system_metrics.memory_available_mb, 'avg')
-                    }
-                ])
-				memory_used_and_available_chart.value.updateOptions({
-					xaxis: {
-						type: "datetime",
-						axisBorder: {
-							show: false,
-						},
-						axisTicks: {
-							show: false,
-						},
-						labels: {
-							formatter: (value) => timeLabelformatter(value),
-							style: {
-								colors: "#595959"
-							}
-						},
-						min: Date.now() - filterTimeRange.value,
-					},
-				})
-                network_io_chart.value.updateSeries([
-                    {
-                        name: "Network bytes sent (Mbps)",
-                        color: "#10B981",
-                        data: formatForChart(jsonResponse.system_metrics.network_io_sent, 'avg')
-                    },
-                    {
-                        name: "Network bytes recieved (Mbps)",
-                        color: "#085b3f",
-                        data: formatForChart(jsonResponse.system_metrics.network_io_recv, 'avg')
-                    }
-                ])
-				network_io_chart.value.updateOptions({
-					xaxis: {
-						type: "datetime",
-						axisBorder: {
-							show: false,
-						},
-						axisTicks: {
-							show: false,
-						},
-						labels: {
-							formatter: (value) => timeLabelformatter(value),
-							style: {
-								colors: "#595959"
-							}
-						},
-						min: Date.now() - filterTimeRange.value,
-					},
-				})
-                read_write_per_minute_chart.value.updateSeries(
-                    jsonResponse.read_write.map(item => {
-                        return {
-                            name: item.name,
-                            data: item.data.map(point => [point[0] * 1000, point[1]])
-                        }
-                    })
-                )
-				read_write_per_minute_chart.value.updateOptions({
-					xaxis: {
-						type: "datetime",
-						axisBorder: {
-							show: false,
-						},
-						axisTicks: {
-							show: false,
-						},
-						labels: {
-							formatter: (value) => timeLabelformatter(value),
-							style: {
-								colors: "#595959"
-							}
-						},
-						min: Date.now() - filterTimeRange.value,
-					},
-				})
-                latency_per_route_chart.value.updateSeries(
-                    jsonResponse.latencies.map(item => {
-                        return {
-                            name: item.name,
-                            data: item.data.map(point => [point[0] * 1000, point[1]])
-                        }
-                    })
-                )
-				latency_per_route_chart.value.updateOptions({
-					xaxis: {
-						type: "datetime",
-						axisBorder: {
-							show: false,
-						},
-						axisTicks: {
-							show: false,
-						},
-						labels: {
-							formatter: (value) => timeLabelformatter(value),
-							style: {
-								colors: "#595959"
-							}
-						},
-						min: Date.now() - filterTimeRange.value,
-					},
-				})
-                rpm_chart.value.updateSeries(
-                    jsonResponse.status_code.map(item => {
-                        return {
-                            name: item.name,
-                            color: httpStatusColorCode[item.name],
-                            data: item.data.map(point => [point[0] * 1000, point[1]])
-                        }
-                    })
-                )
-				rpm_chart.value.updateOptions({
-					xaxis: {
-						type: "datetime",
-						axisBorder: {
-							show: false,
-						},
-						axisTicks: {
-							show: false,
-						},
-						labels: {
-							formatter: (value) => timeLabelformatter(value),
-							style: {
-								colors: "#595959"
-							}
-						},
-						min: Date.now() - filterTimeRange.value,
-					},
-				})
-                error_requests_chart.value.updateSeries([
-                    {
-                        name: "4XX",
-                        color: httpStatusColorCode["4XX"],
-                        data: jsonResponse.status_code.find(item => item.name === "4XX").data.map(point => [point[0] * 1000, point[1]])
-                    },
-                    {
-                        name: "5XX",
-                        color: httpStatusColorCode["5XX"],
-                        data: jsonResponse.status_code.find(item => item.name == "5XX")?.data.map(point => [point[0] * 1000, point[1]])
-                    }
-                ])
-				error_requests_chart.value.updateOptions({
-					xaxis: {
-						type: "datetime",
-						axisBorder: {
-							show: false,
-						},
-						axisTicks: {
-							show: false,
-						},
-						labels: {
-							formatter: (value) => timeLabelformatter(value),
-							style: {
-								colors: "#595959"
-							}
-						},
-						min: Date.now() - filterTimeRange.value,
-					},
-				})
-
-                Object.entries(jsonResponse.requests_per_method).forEach(([key, val]) => {
-                    requests_per_method_count[key] = val
-                });
-
-                top_routes.value = jsonResponse.top_routes
-                top_routes_total.value = Object.values(jsonResponse.top_routes).reduce((sum, val) => sum + val, 0)
-                top_slowest_routes.value = jsonResponse.top_slowest_routes
-                top_error_prone_routes.value = jsonResponse.top_error_prone_requests
-
-                current_cpu_usage.value = parseFloat(jsonResponse.system_metrics.cpu_percent.slice(-1)[0]["avg"])
-                current_memory_usage.value = parseFloat(jsonResponse.system_metrics.memory_percent.slice(-1)[0]["avg"])
-                current_memory_used.value = parseInt(jsonResponse.system_metrics.memory_used_mb.slice(-1)[0]["avg"])
-                current_memory_available.value = parseInt(jsonResponse.system_metrics.memory_available_mb.slice(-1)[0]["avg"])
-                current_transmit_bytes.value = parseInt(jsonResponse.system_metrics.network_io_sent.slice(-1)[0]["avg"] / (1024 * 1024))
-                current_received_bytes.value = parseInt(jsonResponse.system_metrics.network_io_recv.slice(-1)[0]["avg"] / (1024 * 1024))
-                errorRefreshing.value = false
-            } catch (error) {
-                errorRefreshing.value = true
-            }
+            });
         }
 
-        function savePreferences() {
-            console.log("prefs")
+        function compactNumber(num) {
+            if (num < 1000) {
+                return num.toString();
+            } else if (num < 1_000_000) {
+                return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
+            } else {
+                return (num / 1_000_000).toFixed(1).replace(/\.0$/, '') + 'm';
+            }
         }
 
         async function getConfig() {
@@ -1126,6 +882,295 @@ createApp({
             }
         }
 
+        // timestamp seconds => milli for js
+        function formatForChart(data, key) {
+            if (data === null || data === undefined) return []
+            return data.map(point => [point.timestamp * 1000, point[key]])
+        }
+
+        const lastTimestamp = ref(null)
+        const bucket_size = ref(null)
+
+        async function getData() {
+            const tsFrom = Math.round((Date.now() - filterTimeRange.value) / 1000)
+            try {
+                const response = await fetch(`/metrics/json?ts_from=${tsFrom}`)
+
+                if (!response.ok) {
+                    errorRefreshing.value = true
+                    console.log("problem getting data")
+                }
+
+                const jsonResponse = await response.json()
+
+                bucket_size.value = jsonResponse.meta.bucket_size_secs
+
+                cpu_chart.value.updateSeries([
+                    {
+                        name: "instance min",
+                        color: "#0d9568",
+                        data: formatForChart(jsonResponse.system_metrics.cpu_percent, 'min')
+                    },
+                    {
+                        name: "instance avg",
+                        color: "#10b981",
+                        data: formatForChart(jsonResponse.system_metrics.cpu_percent, 'avg')
+                    },
+                    {
+                        name: "instance max",
+                        color: "#13dd9a",
+                        data: formatForChart(jsonResponse.system_metrics.cpu_percent, 'max')
+                    },
+                    {
+                        name: "system avg",
+                        color: "#3D3F9C",
+                        data: formatForChart(jsonResponse.system_metrics.system_wide_cpu_percent, 'avg')
+                    }
+                ])
+                updateXaxis(cpu_chart.value)
+                memory_chart.value.updateSeries([
+                    {
+                        name: "instance avg",
+                        color: "#10b981",
+                        data: formatForChart(jsonResponse.system_metrics.memory_percent, 'avg')
+                    },
+                    {
+                        name: "system avg",
+                        color: "#3D3F9C",
+                        data: formatForChart(jsonResponse.system_metrics.system_wide_memory_percent, 'avg')
+                    }
+                ])
+                updateXaxis(memory_chart.value)
+                memory_used_and_available_chart.value.updateSeries([
+                    {
+                        name: "instance memory used",
+                        color: "#10b981",
+                        data: formatForChart(jsonResponse.system_metrics.memory_used_mb, 'avg')
+                    },
+                    {
+                        name: "system memory available",
+                        color: "#3D3F9C",
+                        data: formatForChart(jsonResponse.system_metrics.system_wide_memory_available_mb, 'avg')
+                    },
+                    {
+                        name: "system memory used",
+                        color: "#3D3F9C",
+                        data: formatForChart(jsonResponse.system_metrics.system_wide_memory_used_mb, 'avg')
+                    }
+                ])
+                updateXaxis(memory_used_and_available_chart.value)
+                network_io_chart.value.updateSeries([
+                    {
+                        name: "network bytes sent",
+                        color: "#10b981",
+                        data: formatForChart(jsonResponse.system_metrics.network_io_sent, 'avg')
+                    },
+                    {
+                        name: "network bytes recieved",
+                        color: "#085b3f",
+                        data: formatForChart(jsonResponse.system_metrics.network_io_recv, 'avg')
+                    }
+                ])
+                updateXaxis(network_io_chart.value)
+                read_write_per_minute_chart.value.updateSeries(
+                    jsonResponse.read_write.map(item => {
+                        return {
+                            name: item.name,
+                            data: item.data.map(point => [point[0] * 1000, point[1]])
+                        }
+                    })
+                )
+                updateXaxis(read_write_per_minute_chart.value)
+                latency_per_route_chart.value.updateSeries(
+                    jsonResponse.latencies.map(item => {
+                        return {
+                            name: item.name,
+                            data: item.data.map(point => [point[0] * 1000, point[1]])
+                        }
+                    })
+                )
+                updateXaxis(latency_per_route_chart.value)
+                rpm_chart.value.updateSeries(
+                    jsonResponse.status_code.map(item => {
+                        return {
+                            name: item.name,
+                            color: httpStatusColorCode[item.name],
+                            data: item.data.map(point => [point[0] * 1000, point[1]])
+                        }
+                    })
+                )
+                updateXaxis(rpm_chart.value)
+                error_requests_chart.value.updateSeries([
+                    {
+                        name: "4XX",
+                        color: httpStatusColorCode["4XX"],
+                        data: jsonResponse.status_code.find(item => item.name === "4XX").data.map(point => [point[0] * 1000, point[1]])
+                    },
+                    {
+                        name: "5XX",
+                        color: httpStatusColorCode["5XX"],
+                        data: jsonResponse.status_code.find(item => item.name == "5XX")?.data.map(point => [point[0] * 1000, point[1]])
+                    }
+                ])
+                updateXaxis(error_requests_chart.value)
+
+                Object.entries(jsonResponse.requests_per_method).forEach(([key, val]) => {
+                    requests_per_method_count[key] = val
+                });
+
+                top_routes.value = jsonResponse.top_routes
+                top_routes_total.value = Object.values(jsonResponse.top_routes).reduce((sum, val) => sum + val, 0)
+                top_slowest_routes.value = jsonResponse.top_slowest_routes
+                top_error_prone_routes.value = jsonResponse.top_error_prone_requests
+
+                current_cpu_usage.value = parseFloat(jsonResponse.system_metrics.cpu_percent.slice(-1)[0]["avg"])
+                current_memory_usage.value = parseFloat(jsonResponse.system_metrics.memory_percent.slice(-1)[0]["avg"])
+                current_memory_used.value = parseInt(jsonResponse.system_metrics.memory_used_mb.slice(-1)[0]["avg"])
+                system_wide_memory_used_mb.value = parseInt(jsonResponse.system_metrics.system_wide_memory_used_mb.slice(-1)[0]["avg"])
+                system_current_memory_available.value = parseInt(jsonResponse.system_metrics.system_wide_memory_available_mb.slice(-1)[0]["avg"])
+                current_transmit_bytes.value = parseInt(jsonResponse.system_metrics.network_io_sent.slice(-1)[0]["avg"] / (1024 * 1024))
+                current_received_bytes.value = parseInt(jsonResponse.system_metrics.network_io_recv.slice(-1)[0]["avg"] / (1024 * 1024))
+                errorRefreshing.value = false
+
+                lastTimestamp.value = Math.round(Date.now() / 1000)
+                console.log("finished", lastTimestamp.value)
+                startInterval(bucket_size.value)
+            } catch (error) {
+                errorRefreshing.value = true
+                console.log("problem with getting data:", error)
+                setTimeout(getData, 5000)
+            }
+
+            console.log("finished getting data")
+        }
+
+        async function updateCharts() {
+            if (!lastTimestamp.value) return
+
+            refreshing.value = true
+            try {
+                const response = await fetch(`/metrics/json?ts_from=${lastTimestamp.value}&bucket_size=${bucket_size.value}`)
+
+                if (!response.ok) {
+                    errorRefreshing.value = true
+                    console.log("problem getting data")
+                }
+
+                const jsonResponse = await response.json()
+
+                cpu_chart.value.appendData([
+                    {
+                        data: formatForChart(jsonResponse.system_metrics.cpu_percent, 'min')
+                    },
+                    {
+                        data: formatForChart(jsonResponse.system_metrics.cpu_percent, 'avg')
+                    },
+                    {
+                        data: formatForChart(jsonResponse.system_metrics.cpu_percent, 'max')
+                    },
+                    {
+                        data: formatForChart(jsonResponse.system_metrics.system_wide_cpu_percent, 'avg')
+                    }
+                ])
+                updateXaxis(cpu_chart.value)
+                memory_chart.value.appendData([
+                    {
+                        data: formatForChart(jsonResponse.system_metrics.memory_percent, 'avg')
+                    },
+                    {
+                        data: formatForChart(jsonResponse.system_metrics.system_wide_memory_percent, 'avg')
+                    }
+                ])
+                updateXaxis(memory_chart.value)
+                memory_used_and_available_chart.value.appendData([
+                    {
+                        data: formatForChart(jsonResponse.system_metrics.memory_used_mb, 'avg')
+                    },
+                    {
+                        data: formatForChart(jsonResponse.system_metrics.system_wide_memory_available_mb, 'avg')
+                    },
+                    {
+                        data: formatForChart(jsonResponse.system_metrics.system_wide_memory_used_mb, 'avg')
+                    }
+                ])
+                updateXaxis(memory_used_and_available_chart.value)
+                network_io_chart.value.appendData([
+                    {
+                        data: formatForChart(jsonResponse.system_metrics.network_io_sent, 'avg')
+                    },
+                    {
+                        data: formatForChart(jsonResponse.system_metrics.network_io_recv, 'avg')
+                    }
+                ])
+                updateXaxis(network_io_chart.value)
+                read_write_per_minute_chart.value.appendData(
+                    jsonResponse.read_write.map(item => {
+                        return {
+                            name: item.name,
+                            data: item.data.map(point => [point[0] * 1000, point[1]])
+                        }
+                    })
+                )
+                updateXaxis(read_write_per_minute_chart.value)
+                latency_per_route_chart.value.appendData(
+                    jsonResponse.latencies.map(item => {
+                        return {
+                            name: item.name,
+                            data: item.data.map(point => [point[0] * 1000, point[1]])
+                        }
+                    })
+                )
+                updateXaxis(latency_per_route_chart.value)
+                rpm_chart.value.appendData(
+                    jsonResponse.status_code.map(item => {
+                        return {
+                            name: item.name,
+                            color: httpStatusColorCode[item.name],
+                            data: item.data.map(point => [point[0] * 1000, point[1]])
+                        }
+                    })
+                )
+                updateXaxis(rpm_chart.value)
+                error_requests_chart.value.appendData([
+                    {
+                        name: "4XX",
+                        color: httpStatusColorCode["4XX"],
+                        data: jsonResponse.status_code.find(item => item.name === "4XX").data.map(point => [point[0] * 1000, point[1]])
+                    },
+                    {
+                        name: "5XX",
+                        color: httpStatusColorCode["5XX"],
+                        data: jsonResponse.status_code.find(item => item.name == "5XX")?.data.map(point => [point[0] * 1000, point[1]])
+                    }
+                ])
+                updateXaxis(error_requests_chart.value)
+
+                Object.entries(jsonResponse.requests_per_method).forEach(([key, val]) => {
+                    requests_per_method_count[key] = val
+                });
+
+                top_routes.value = jsonResponse.top_routes
+                top_routes_total.value = Object.values(jsonResponse.top_routes).reduce((sum, val) => sum + val, 0)
+                top_slowest_routes.value = jsonResponse.top_slowest_routes
+                top_error_prone_routes.value = jsonResponse.top_error_prone_requests
+
+                current_cpu_usage.value = parseFloat(jsonResponse.system_metrics.cpu_percent.slice(-1)[0]["avg"])
+                current_memory_usage.value = parseFloat(jsonResponse.system_metrics.memory_percent.slice(-1)[0]["avg"])
+                current_memory_used.value = parseInt(jsonResponse.system_metrics.memory_used_mb.slice(-1)[0]["avg"])
+                system_wide_memory_used_mb.value = parseInt(jsonResponse.system_metrics.system_wide_memory_used_mb.slice(-1)[0]["avg"])
+                system_current_memory_available.value = parseInt(jsonResponse.system_metrics.system_wide_memory_available_mb.slice(-1)[0]["avg"])
+                current_transmit_bytes.value = parseInt(jsonResponse.system_metrics.network_io_sent.slice(-1)[0]["avg"] / (1024 * 1024))
+                current_received_bytes.value = parseInt(jsonResponse.system_metrics.network_io_recv.slice(-1)[0]["avg"] / (1024 * 1024))
+                errorRefreshing.value = false
+
+                lastTimestamp.value = Math.round(Date.now() / 1000)
+            } catch (error) {
+                console.log("error refreshing:", error)
+                errorRefreshing.value = true
+            }
+            refreshing.value = false
+        }
+
         function refresh() {
             destroyCharts()
             renderCharts()
@@ -1137,6 +1182,7 @@ createApp({
             resetModalShow.value = !resetModalShow.value
             settingsDropdown.value = !settingsDropdown.value
         }
+
         async function resetMetricsStore() {
             try {
                 const response = await fetch('/metrics/reset', { method: 'DELETE' })
@@ -1193,14 +1239,23 @@ createApp({
             return diffYears === 1 ? "1 year ago" : `${diffYears} years ago`;
         }
 
+        // delay in seconds
+        function startInterval(delay) {
+            if (fetchInterval) {
+                clearInterval(fetchInterval)
+            }
+
+            fetchInterval = setInterval(() => {
+                getTableOverview()
+                // updateCharts()
+                getData()
+            }, delay * 1000)
+        }
+
         onMounted(() => {
             renderCharts()
             getTableOverview()
             getData()
-            fetchInterval = setInterval(() => {
-                getTableOverview()
-                getData()
-            }, 10 * 1000)
         });
 
         onUnmounted(() => {
@@ -1209,9 +1264,11 @@ createApp({
         })
 
         return {
-			appTitle,
+            appTitle,
+            refreshing,
             toggleDarkMode,
             darkMode,
+            compactNumber,
 
             overviewTable,
             paginatedEntries,
@@ -1229,7 +1286,8 @@ createApp({
             current_cpu_usage,
             current_memory_usage,
             current_memory_used,
-            current_memory_available,
+            system_current_memory_available,
+            system_wide_memory_used_mb,
             current_transmit_bytes,
             current_received_bytes,
             requests_per_method_count,
@@ -1251,4 +1309,4 @@ createApp({
             httpStatusColorCode,
         }
     },
-}).mount("#app");
+}).mount("#app")

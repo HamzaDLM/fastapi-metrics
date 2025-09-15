@@ -4,12 +4,12 @@ from typing import DefaultDict
 
 import psutil
 
-from fastapi_metrics_dashboard.backends import (
+from fastapi_metrics.backends.base import (
+    MetricsStore,
     Bucket,
     SystemLogEntry,
 )
-from fastapi_metrics_dashboard.backends.base import MetricsStore
-from fastapi_metrics_dashboard.logger import logger
+from fastapi_metrics.logger import logger
 
 
 class InMemoryMetricsStore(MetricsStore):

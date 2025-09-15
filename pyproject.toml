@@ -1,2 +1,29 @@
-[tool.ruff]
-line-length = 120
+[project]
+name = "fastapi-metrics"
+version = "0.1.0"
+description = "fastapi-metrics is a fastapi extension that tracks different metrics and provides a clean dashboard to visualize them."
+readme = "README.md"
+authors = [{ name = "Hamza Dellam" }]
+license = "Apache-2.0"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi>=0.116.1",
+    "psutil>=7.0.0",
+    "types-psutil>=7.0.0.20250822",
+]
+
+[project.optional-dependencies]
+redis = ["redis>=6.4.0"]
+aiosqlite = ["aiosqlite>=0.21.0"]
+
+[tool.setuptools.package-data]
+"fastapi_metrics" = ["py.typed"]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+    "mypy>=1.18.1",
+    "pytest>=8.4.2",
+    "ruff>=0.13.0",
+    "uvicorn>=0.35.0",
+]

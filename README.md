@@ -1,37 +1,37 @@
-# fastapi-metrics-dashboard
+# fastapi-metrics
+
+![Dashboard Screenshot](https://github.com/HamzaDLM/fastapi-metrics/blob/main/fastapi_metrics/static/bg.png?raw=true)
 
 ## Introduction
 
-`fastapi-metrics-dashboard` is a FastAPI extension that tracks different metrics like request count, latency, and status codes using lightweight middleware. It provides a built-in dashboard UI and supports multiple storage backends, including in-memory, SQLite, and Redis.
+`fastapi-metrics` is a FastAPI extension for application performance monitoring.
+It tracks request and system metrics using lightweight middleware.
+Metrics can be stored in in-memory, SQLite, or Redis backends and visualized in a built-in dashboard UI.
+
+## Who is it for?
+
+- Developers who want a metrics dashboard without running a full Prometheus + Grafana stack.
+- Indie devs or small teams running single-instance FastAPI backends who just need lightweight insights.
 
 ## Features
 
-- supports: redis, sqlite and in_memory (default) stores.
-- comes with useful decorators like the `@skip_router` and more...
-- customizable frontend theme by providing a css file
-- provides data in form of json
-- auth
-
-## Requirements
-
-- Fastapi
+- 🚀 Zero-config FastAPI middleware
+- 🗄 Multiple storage backends: in-memory, SQLite, Redis
+- 💻 Built-in dashboard UI with charts
+- ⚡ Lightweight & async-first design
+- 🔌 Configurable retention, bucket sizes, and cleanup
 
 ## Installation
 
 ```shell
-> pip install fastapi-metrics-dashboard
+> pip install fastapi-metrics
 ```
 
-or
+Optional dependencies:
 
 ```shell
-> pip install "fastapi-metrics-dashboard[redis]"
-```
-
-or
-
-```shell
-> pip install "fastapi-metrics-dashboard[sqlite3]"
+> pip install "fastapi-metrics[redis]"
+> pip install "fastapi-metrics[aiosqlite]"
 ```
 
 ## Quick Start
@@ -40,30 +40,66 @@ Check the `examples` folder for more.
 
 ```python
 from fastapi import FastAPI
-
-from fastapi_metrics_dashboard import FastAPIMetricsDashboard
-from fastapi_metrics_dashboard.decorator import exclude_from_metrics
-
+from fastapi_metrics import FastAPIMetrics, Config
+from fastapi_metrics.backends.memory import InMemoryMetricsStore
 
 app = FastAPI()
 
-FastAPIMetricsDashboard().init(app)
+FastAPIMetrics.init(
+    app,
+    InMemoryMetricsStore(),
+    config=Config(),
+)
 
-
-@app.get("/ping")
-def ping():
-    return "pong"
-
-
-@app.get("/sentitive")
-@exclude_from_metrics
-def sensitive():
-    return "sensitive"
+@app.get("/")
+def index():
+    return "ok"
 ```
 
-## Decorators
+Visit `/metrics` to view the UI.
 
-table
+## Backends
+
+#### In-Memory (default)
+
+```python
+from fastapi_metrics.backends.memory import InMemoryMetricsStore
+store = InMemoryMetricsStore()
+```
+
+#### Redis
+
+```python
+from fastapi_metrics.backends.redis import RedisMetricsStore
+
+# sync
+import redis
+
+redis_client = redis.Redis(host="localhost", port=6379, db=0)
+store = RedisMetricsStore(redis_client)
+
+# async
+import redis.asyncio as async_redis
+
+async_redis_client = async_redis.Redis(host="localhost", port=6379, db=0)
+async_store = AsyncRedisMetricsStore(async_redis_client),
+```
+
+#### SQLite
+
+```python
+from fastapi_metrics.backends.sqlite import SQLiteMetricsStore
+store = SQLiteMetricsStore("metrics.db")
+```
+
+## Development
+
+```shell
+git clone https://github.com/HamzaDLM/fastapi-metrics
+cd fastapi-metrics
+uv sync
+uv run pytest
+```
 
 ## License
 
